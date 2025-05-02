@@ -1,0 +1,24 @@
+{
+  "name": "msgzone",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon index.js",
+    "start": "node index.js"
+  },
+  "type": "module",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.14.1",
+    "node-schedule": "^2.1.1",
+    "nodemon": "^3.1.10",
+    "qrcode": "^1.5.4",
+    "whatsapp-web.js": "^1.27.0",
+    "wwebjs-mongo": "^1.1.0"
+  }
+}
