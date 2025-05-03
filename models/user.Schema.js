@@ -7,7 +7,7 @@ const UserSchema = new mongoose.Schema({
     },
     businessName: {
         type: String,
-        required: [true, 'Business name is required']
+        
     },
     whatsappNumber: {
         type: String,
@@ -15,7 +15,8 @@ const UserSchema = new mongoose.Schema({
         unique: true
     },
     waSession: {
-        type: Object 
+        type: Object ,
+        default:null
     },
     alternateNumber: {
         type: String

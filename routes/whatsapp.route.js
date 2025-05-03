@@ -6,7 +6,7 @@ import schedule from 'node-schedule';
 import { addSession, getSession } from '../utils/sessions/sessionManager.js';
 import { isAuthenticated } from '../middleware/isAuthenticated.js';
 import { MessageLog } from '../models/message.log.schema.js';
-import { UserAuthStrategy } from '../utils/UserAuthStrategy.js'
+
 
 const { Client, LocalAuth, RemoteAuth } = whatsapp
 
@@ -45,16 +45,9 @@ router.post('/scan', isAuthenticated, async (req, res) => {
   try {
     const userId = req.user.userId;
     console.log("🔄 Starting WhatsApp session for:", userId);
-
-    const store = new UserAuthStrategy(userId);
     const client = new Client({
-      authStrategy: new RemoteAuth({
-        clientId: userId,
-        store: store,
-        backupSyncIntervalMs: 300000, // Optional autosave every 5 min
-      })
+      authStrategy: new LocalAuth({ clientId: userId }),
     });
-
     client.once('qr', async (qr) => {
       try {
         console.log("📷 QR generated for:", userId);
@@ -125,13 +118,14 @@ router.post('/send', isAuthenticated, async (req, res) => {
 
       try {
         await client.sendMessage(chatId, message);
+        await delay(5000); 
         results.push({ text: message });
 
       } catch (err) {
         results.push({ number, status: 'error', reason: err.message });
       }
 
-      await delay(3000); 
+      
     }
 
     messageLog.messages = results;
