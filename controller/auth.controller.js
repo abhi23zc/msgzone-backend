@@ -112,7 +112,7 @@ export const register = async (req, res) => {
         return res.status(201).json({
             success: true,
             message: "Registration successful.",
-            data: { user: userData, token }
+            data: { user: userData }
         });
     } catch (err) {
         console.error("Register error:", err);

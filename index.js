@@ -1,6 +1,7 @@
 import express from 'express'
 import authRouter from './routes/auth.route.js';
 import whatsappRouter from './routes/whatsapp.route.js';
+import dashboardRouter from './routes/dashboard.route.js';
 import connectDB from './config/database.js';
 import cors from 'cors'
 const PORT = 8080
@@ -12,6 +13,8 @@ connectDB()
 app.use(express.json())
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/wp", whatsappRouter)
+app.use("/api/v1/wp", dashboardRouter)
+
 app.get('/health', (req, res)=>{
     return res.json({msg:"System up and running"})
 })
