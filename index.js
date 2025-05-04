@@ -7,7 +7,7 @@ import cors from 'cors'
 const PORT = process.env.PORT || 8080
 const app = express();
 
-app.use(cors({ origin: 'http://localhost:3000' }))
+app.use(cors({ origin: ['http://localhost:3000', 'https://msgzone.vercel.app/'] }))
 
 connectDB()
 app.use(express.json())
