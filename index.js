@@ -4,10 +4,10 @@ import whatsappRouter from './routes/whatsapp.route.js';
 import dashboardRouter from './routes/dashboard.route.js';
 import connectDB from './config/database.js';
 import cors from 'cors'
-const PORT = 8080
+const PORT = process.env.PORT || 8080
 const app = express();
 
-app.use(cors({ origin: '*' }))
+app.use(cors({ origin: 'http://localhost:3000' }))
 
 connectDB()
 app.use(express.json())
