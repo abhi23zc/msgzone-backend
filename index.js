@@ -4,12 +4,15 @@ import whatsappRouter from './routes/whatsapp.route.js';
 import dashboardRouter from './routes/dashboard.route.js';
 import connectDB from './config/database.js';
 import cors from 'cors'
+import { restoreSessions } from './sessionStart.js';
+
 const PORT = process.env.PORT || 8080
 const app = express();
 
 app.use(cors({ origin: ['http://localhost:3000', 'https://msgzone.vercel.app/'] }))
 
 connectDB()
+restoreSessions()
 app.use(express.json())
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/wp", whatsappRouter)

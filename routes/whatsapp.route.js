@@ -33,6 +33,7 @@ router.get('/scan', isAuthenticated, async (req, res) => {
       authStrategy: new LocalAuth({ clientId: userId }),
     });
 
+    
     client.once('qr', async (qr) => {
       try {
         console.log("📷 QR generated for:", userId);
