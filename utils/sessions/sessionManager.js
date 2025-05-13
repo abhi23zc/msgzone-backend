@@ -1,15 +1,25 @@
 const sessions = {};
 
-function addSession(userId, client) {
-  sessions[userId] = client;
+function addSession(userId, deviceId, client) {
+  if (!sessions[userId]) sessions[userId] = {};
+  sessions[userId][deviceId] = client;
 }
 
-function getSession(userId) {
-  return sessions[userId];
+function getSession(userId, deviceId) {
+  return sessions[userId]?.[deviceId] || null;
 }
 
-function removeSession(userId) {
-  delete sessions[userId];
+function removeSession(userId, deviceId) {
+  if (sessions[userId]) {
+    delete sessions[userId][deviceId];
+    if (Object.keys(sessions[userId]).length === 0) {
+      delete sessions[userId];
+    }
+  }
 }
 
-export { addSession, getSession, removeSession };
+function listSessions(userId) {
+  return sessions[userId] ? Object.keys(sessions[userId]) : [];
+}
+
+export { addSession, getSession, removeSession, listSessions };

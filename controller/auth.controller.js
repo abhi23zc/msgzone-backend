@@ -133,6 +133,7 @@ export const register = async (req, res) => {
 
 export const profile = async (req, res) => {
     try {
+        console.log("Fetching Profile")
         const userId = req?.user?.userId
         if (!userId) {
             return res.status(401).json({

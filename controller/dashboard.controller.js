@@ -9,3 +9,4 @@ export const getAllMessages =async (req, res, next)=>{
         return res.json({success:false, data:null, message:"Server error occured"})
     }
 }
+

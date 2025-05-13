@@ -9,10 +9,11 @@ import { restoreSessions } from './sessionStart.js';
 const PORT = process.env.PORT || 8080
 const app = express();
 
-app.use(cors({ origin: ['http://localhost:3000', 'https://msgzone.vercel.app/'] }))
+// app.use(cors({ origin: 'http://localhost:3000' }))
+app.use(cors({ origin: 'https://msgzone.vercel.app' }))
 
 connectDB()
-restoreSessions()
+// restoreSessions()
 app.use(express.json())
 app.use("/api/v1/auth", authRouter)
 app.use("/api/v1/wp", whatsappRouter)

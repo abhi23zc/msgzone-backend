@@ -1,191 +1,78 @@
 import express from 'express';
 const router = express.Router();
-import whatsapp from 'whatsapp-web.js';
-import qrcode from 'qrcode';
-import schedule from 'node-schedule';
-import { addSession, getSession } from '../utils/sessions/sessionManager.js';
+
 import { isAuthenticated } from '../middleware/isAuthenticated.js';
-import { MessageLog } from '../models/message.log.schema.js';
 
-const { Client, LocalAuth, RemoteAuth } = whatsapp
+import { getLogs, scan, scheduleMsg, send } from '../controller/whatsapp.controller.js';
 
-import fs from 'fs/promises';
-import path from 'path';
-import { fileURLToPath } from 'url';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
 
-router.get('/scan', isAuthenticated, async (req, res) => {
-  try {
-    const userId = req.user.userId;
-    const sessionPath = path.join(__dirname, '..', '.wwebjs_auth', `session-${userId}`);
+router.get('/scan', isAuthenticated, scan);
 
-    try {
-      await fs.access(sessionPath);
-      console.log(`🧹 Removing existing session for ${userId} to regenerate QR`);
-      await fs.rm(sessionPath, { recursive: true, force: true });
-    } catch (err) {
-      // No session folder exists
-    }
+// router.get('/scan', isAuthenticated, async (req, res) => {
+//   const userId = req.user.userId;
+//   const sessionPath = path.join(__dirname, '..', '.wwebjs_auth', `session-${userId}`);
 
-    const client = new Client({
-      authStrategy: new LocalAuth({ clientId: userId }),
-    });
+//   res.setHeader('Content-Type', 'text/event-stream');
+//   res.setHeader('Cache-Control', 'no-cache');
+//   res.setHeader('Connection', 'keep-alive');
+//   res.flushHeaders(); // Needed for SSE to start sending data
 
-    
-    client.once('qr', async (qr) => {
-      try {
-        console.log("📷 QR generated for:", userId);
-        const qrImage = await qrcode.toDataURL(qr);
-        res.json({ success: true, data: qrImage, message: "QR generated" });
-      } catch (err) {
-        console.error("Error generating QR code:", err);
-        res.json({ success: false, data: null, message: "Failed to generate QR" });
-      }
-    });
+//   const sendEvent = (event, data) => {
+//     res.write(`event: ${event}\n`);
+//     res.write(`data: ${JSON.stringify(data)}\n\n`);
+//   };
 
-    client.on('ready', () => {
-      console.log(`✅ WhatsApp client ready for user ${userId}`);
-    });
+//   try {
+//     try {
+//       await fs.access(sessionPath);
+//       console.log(`Removing existing session for ${userId} to regenerate QR`);
+//       await fs.rm(sessionPath, { recursive: true, force: true });
+//     } catch (err) {
+//       // No session folder exists
+//     }
 
-    client.on('auth_failure', (msg) => {
-      console.error(`❌ Auth failure for user ${userId}:`, msg);
-    });
+//     const client = new Client({
+//       authStrategy: new LocalAuth({ clientId: userId }),
+//     });
 
-    client.on('disconnected', (reason) => {
-      console.warn(`⚠️ Client disconnected for ${userId}:`, reason);
-    });
+//     client.on('qr', async (qr) => {
+//       console.log("QR generated for:", userId);
+//       const qrImage = await qrcode.toDataURL(qr);
+//       sendEvent("qr", { qr: qrImage });
+//     });
 
-    client.initialize();
-    addSession(userId, client);
-  } catch (err) {
-    console.error("Error in /scan route:", err);
-    res.status(500).json({ success: false, data: null, message: 'Failed to start WhatsApp session' });
-  }
-});
+//     client.on('ready', () => {
+//       console.log(`WhatsApp client ready for user ${userId}`);
+//       sendEvent("ready", { message: "Client is ready" });
+//       res.end(); // Close the SSE connection
+//     });
 
-const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+//     client.on('auth_failure', (msg) => {
+//       console.error(`Auth failure for user ${userId}:`, msg);
+//       sendEvent("error", { message: "Auth failure" });
+//       res.end();
+//     });
 
-router.post('/send', isAuthenticated, async (req, res) => {
-  try {
-    const { numbers, message, timer } = req.body;
-    // console.log(numbers, message, timer);
-    if (!numbers || !message) {
-      return res.json({ success: false, data: null, message: 'Please fill all required fields' });
-    }
-    let newTimer = 1;
-    if (timer) newTimer = timer;
-    const client = getSession(req.user.userId);
+//     client.on('disconnected', (reason) => {
+//       console.warn(`Client disconnected for ${userId}:`, reason);
+//       sendEvent("error", { message: "Disconnected" });
+//       res.end();
+//     });
 
-    if (!client) {
-      return res.json({ success: false, data: null, message: 'WhatsApp not connected' });
-    }
+//     client.initialize();
+//     addSession(userId, client);
+//   } catch (err) {
+//     console.error("Error in /scan SSE route:", err);
+//     sendEvent("error", { message: "Server error during scan" });
+//     res.end();
+//   }
+// });
 
-    const results = [];
-    const messageLog = new MessageLog({
-      userId: req.user.userId,
-      messages: [],
-      status: 'scheduled'
-    });
+router.post('/send', isAuthenticated ,send);
 
-    for (const number of numbers) {
-      // if (!Number.isInteger(number)) continue;
-      const chatId = number + '@c.us';
+router.post('/schedule', isAuthenticated, scheduleMsg);
 
-      try {
-        await client.sendMessage(chatId, message);
-        console.log("Message Sent", { chatId, message });
-        await delay(parseInt(newTimer)*1000);
-        results.push({ number, text: message, status: 'delivered' });
-      } catch (err) {
-        console.log(err)
-        results.push({ number, text: message, status: 'error' });
-      }
-    }
-
-    if(!results){
-      return res.json({ success: false, data: null, message: "Something went wrong while sending messages" });
-    }
-    messageLog.messages = results;
-    await messageLog.save();
-    return res.json({ success: true, data: messageLog, message: "Messages sent" });
-  } catch (err) {
-    console.error("Error in /send route:", err);
-    return res.status(500).json({ success: false, data: null, message: 'Failed to send messages' });
-  }
-});
-
-router.post('/schedule', isAuthenticated, async (req, res) => {
-  try {
-    const { number, message, scheduleTime } = req.body;
-    const client = getSession(req.user.userId);
-    if (!client) {
-      return res.json({ success: false, data: null, message: 'WhatsApp not connected' });
-    }
-
-    let scheduledLog;
-    try {
-      scheduledLog = await MessageLog.create({
-        userId: req.user.userId,
-        number,
-        message,
-        status: 'scheduled',
-        scheduledTime: new Date(scheduleTime),
-      });
-    } catch (err) {
-      console.error("Error creating MessageLog:", err);
-      return res.json({ success: false, data: null, message: 'Failed to create message log' });
-    }
-
-    try {
-      schedule.scheduleJob(new Date(scheduleTime), async () => {
-        try {
-          const chatId = number + '@c.us';
-          await client.sendMessage(chatId, message);
-          await MessageLog.updateOne(
-            { userId: req.user.userId, number, message, scheduledTime: new Date(scheduleTime) },
-            { status: 'delivered', sentAt: new Date() }
-          );
-        } catch (err) {
-          try {
-            await MessageLog.updateOne(
-              { userId: req.user.userId, number, message, scheduledTime: new Date(scheduleTime) },
-              { status: 'error', sentAt: new Date() }
-            );
-          } catch (updateErr) {
-            console.error("Error updating MessageLog after failed send:", updateErr);
-          }
-        }
-      });
-    } catch (err) {
-      console.error("Error scheduling job:", err);
-      return res.json({ success: false, data: null, message: 'Failed to schedule message' });
-    }
-
-    return res.json({ success: true, data: scheduledLog, message: "Message scheduled" });
-  } catch (err) {
-    console.error("Error in /schedule route:", err);
-    return res.status(500).json({ success: false, data: null, message: 'Scheduling failed' });
-  }
-});
-
-router.get('/logs', isAuthenticated, async (req, res) => {
-  try {
-    try {
-      const logs = await MessageLog.find({ userId: req.user.userId }).sort({ sentAt: -1 });
-      if (!logs || logs.length === 0) {
-        return res.json({ success: false, data: null, message: "No Messages found" });
-      }
-      return res.json({ success: true, data: logs, message: "Logs fetched" });
-    } catch (err) {
-      console.error("Error fetching logs:", err);
-      return res.json({ success: false, data: null, message: 'Failed to fetch logs' });
-    }
-  } catch (err) {
-    console.error("Error in /logs route:", err);
-    return res.status(500).json({ success: false, data: null, message: 'Failed to fetch logs' });
-  }
-});
+router.get('/logs', isAuthenticated, getLogs)
 
 export default router;
