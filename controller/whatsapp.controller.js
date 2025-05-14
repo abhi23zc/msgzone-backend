@@ -55,6 +55,10 @@ export const scan = async (req, res) => {
 
     const client = new Client({
       authStrategy: new LocalAuth({ clientId: `${userId}-${deviceId}` }),
+      puppeteer: {
+        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        headless: true,
+      }
     });
 
     client.once("qr", async (qr) => {
