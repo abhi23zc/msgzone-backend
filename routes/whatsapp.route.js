@@ -3,11 +3,11 @@ const router = express.Router();
 
 import { isAuthenticated } from '../middleware/isAuthenticated.js';
 
-import { getLogs, scan, scheduleMsg, send } from '../controller/whatsapp.controller.js';
+// import { getLogs, listUserSessions,  scan, scheduleMsg, sendBulk } from '../controller/whatsapp.controller.js';
+import { start , connect, sendSingle, getLogs, listUserSessions} from '../controller/_whatsapp.controller.js';
 
-
-
-router.get('/scan', isAuthenticated, scan);
+router.get('/start', isAuthenticated, start);
+router.get('/connect', isAuthenticated, connect);
 
 // router.get('/scan', isAuthenticated, async (req, res) => {
 //   const userId = req.user.userId;
@@ -69,10 +69,14 @@ router.get('/scan', isAuthenticated, scan);
 //   }
 // });
 
-router.post('/send', isAuthenticated ,send);
+router.post('/sendSingle', isAuthenticated ,sendSingle);
 
-router.post('/schedule', isAuthenticated, scheduleMsg);
+// router.post('/sendBulk', isAuthenticated ,sendBulk);
+
+// router.post('/schedule', isAuthenticated, scheduleMsg);
 
 router.get('/logs', isAuthenticated, getLogs)
+
+router.get('/getDevices', isAuthenticated, listUserSessions)
 
 export default router;
