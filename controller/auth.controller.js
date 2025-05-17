@@ -1,5 +1,6 @@
 import { User } from "../models/user.Schema.js";
 import jwt from 'jsonwebtoken'
+
 function generateToken(user) {
     return jwt.sign(
         { userId: user._id, role: user.role },
@@ -47,6 +48,14 @@ export const login = async (req, res) => {
         }
 
         const token = generateToken(user);
+
+        // Set JWT token in HTTP-only cookie
+        res.cookie('token', token, {
+            httpOnly: true,
+            secure: false,
+            sameSite: 'strict',
+            maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+        });
 
         user.lastLogin = new Date();
         await user.save();

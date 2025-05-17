@@ -4,11 +4,17 @@ import whatsappRouter from "./routes/whatsapp.route.js";
 import dashboardRouter from "./routes/dashboard.route.js";
 import connectDB from "./config/database.js";
 import cors from "cors";
+import cookieParser from "cookie-parser";
+
 const PORT = process.env.PORT || 8080;
 const app = express();
 
-// app.use(cors({ origin: 'http://localhost:3000' }))
-app.use(cors({ origin: "https://msgzone.vercel.app" }));
+app.use(cors({
+  origin: 'http://localhost:3000',
+  credentials: true, 
+}));
+// app.use(cors({ origin: "https://msgzone.vercel.app" }));
+app.use(cookieParser())
 
 connectDB();
 app.use(express.json());

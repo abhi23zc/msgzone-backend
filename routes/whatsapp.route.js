@@ -6,8 +6,8 @@ import { isAuthenticated } from '../middleware/isAuthenticated.js';
 // import { getLogs, listUserSessions,  scan, scheduleMsg, sendBulk } from '../controller/whatsapp.controller.js';
 import { start , connect, sendSingle, getLogs, listUserSessions} from '../controller/_whatsapp.controller.js';
 
-router.get('/start', isAuthenticated, start);
-router.get('/connect', isAuthenticated, connect);
+router.post('/start', isAuthenticated, start);
+router.post('/connect', isAuthenticated, connect);
 
 // router.get('/scan', isAuthenticated, async (req, res) => {
 //   const userId = req.user.userId;
