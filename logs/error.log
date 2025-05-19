@@ -1,18 +1,4 @@
-[2025-05-17 10:56:53] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 10:57:04] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 10:57:24] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 10:57:44] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 10:58:04] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 11:21:47] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:22:07] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:22:27] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:23:38] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:23:58] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:24:18] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:24:38] ERROR: Connection update error: Cannot set properties of undefined (setting 'qr')
-[2025-05-17 11:28:46] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 11:29:06] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 11:29:26] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 11:31:46] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 11:32:06] ERROR: Connection update error: Cannot read properties of undefined (reading 'qr')
-[2025-05-17 13:00:17] ERROR: Cannot access 'session' before initialization
+[2025-05-17 16:02:26] ERROR: Client creation failed: req is not defined
+[2025-05-17 16:02:26] ERROR: Error creating client for 682438d25c23d3b9eef628db-business: req is not defined
+[2025-05-17 16:05:11] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-17 16:17:15] ERROR: Send message failed: results is not defined

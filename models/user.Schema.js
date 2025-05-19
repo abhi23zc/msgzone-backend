@@ -78,10 +78,12 @@ const UserSchema = new mongoose.Schema(
       type: [DeviceSchema],
       default: [],
     },
+    enableCode:String,
     createdAt: {
       type: Date,
       default: Date.now,
     },
+    token:String,
     lastLogin: {
       type: Date,
     },

@@ -5,15 +5,22 @@ import dashboardRouter from "./routes/dashboard.route.js";
 import connectDB from "./config/database.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import { restoreSessions } from "./sessionStart.js";
+
+
 
 const PORT = process.env.PORT || 8080;
 const app = express();
 
-app.use(cors({
-  origin: 'http://localhost:3000',
-  credentials: true, 
-}));
-// app.use(cors({ origin: "https://msgzone.vercel.app" }));
+// app.use(cors({
+//   origin: 'https://msgzone.vercel.app',  // Remove trailing slash to match exact origin
+//   credentials: true,
+//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly allow methods
+//   allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
+//   exposedHeaders: ['set-cookie'], // Expose set-cookie header for credentials
+// }));
+app.use(cors({ origin: "http://localhost:3000", credentials: true}));
+// app.use(cors({ origin: "https://msgzone.vercel.app"}));
 app.use(cookieParser())
 
 connectDB();
@@ -26,28 +33,7 @@ app.get("/health", (req, res) => {
 });
 
 
-import fs from 'fs'
-import path from 'path'
-import { fileURLToPath } from 'url'
-import { createClient } from "./controller/_whatsapp.controller.js";
-
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  // ✅ Auto-load existing sessions on startup
-  const sessionsRoot = path.join(__dirname, "sessions");
-  if (fs.existsSync(sessionsRoot)) {
-    const clientFolders = fs.readdirSync(sessionsRoot);
-    clientFolders.forEach(async (clientId) => {
-      const sessionPath = path.join(sessionsRoot, clientId);
-      const credFile = path.join(sessionPath, "creds.json");
-      if (fs.existsSync(credFile)) {
-        console.log(`[${clientId}] Loading existing session...`);
-        await createClient(clientId);
-      }
-    });
-  }
+  restoreSessions()
 });
