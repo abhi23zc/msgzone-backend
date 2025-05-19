@@ -311,10 +311,64 @@ export const getLogs = async (req, res) => {
 
 // 📋 List all active deviceIds for user
 export const listUserSessions = async (req, res) => {
-  
   const sessions = await User.findById(req.user.userId).select("devices");
   if (!sessions)
     return res.json({ success: false, message: "No sessions found" });
-  await delay(3000)
+  await delay(3000);
   res.json({ success: true, data: sessions, message: "Sessions listed" });
+};
+
+// Whatsapp api's endpoints
+export const sendMessageApi = async (req, res) => {
+  const { apikey, to:number, message, deviceId } = req.query;
+
+  // const { deviceId, number, message, timer } = req.body;
+  const userId = req.user.userId;
+  if (!apikey || !number || !message || !deviceId) {
+    return res
+      .status(400)
+      .json({ status: false, message: "Missing required fields" });
+  }
+  const clientId = `${req.user.userId}-${deviceId}`;
+
+  const session = getSession(clientId);
+  if (!session || !session.user) {
+    return res
+      .status(400)
+      .json({ status: false, message: "Client not logged in" });
+  }
+
+  const jid = number.includes("@s.whatsapp.net")
+    ? number
+    : `${number}@s.whatsapp.net`;
+  const messageLog = new MessageLog({ userId, messages: [] });
+  const results = [];
+  try {
+    await session.sock.sendMessage(jid, { text: message });
+    results.push({
+      number,
+      text: message,
+      status: "delivered",
+      sendFrom: deviceId,
+      sendTo: number,
+    });
+    messageLog.messages = results;
+    messageLog.status = "delivered";
+    await messageLog.save();
+
+    res.json({ status: true, message: "Message sent" });
+  } catch (err) {
+    results.push({
+      number,
+      text: message,
+      status: "delivered",
+      sendFrom: deviceId,
+      sendTo: number,
+    });
+    messageLog.messages = results;
+    messageLog.status = "error";
+    await messageLog.save();
+    logger.error(`Send message failed: ${err.message}`);
+    res.status(500).json({ status: false, message: "Failed to send message" });
+  }
 };

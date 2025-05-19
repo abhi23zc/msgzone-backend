@@ -19,4 +19,5 @@ router.get('/logs', isAuthenticated, getLogs)
 
 router.get('/getDevices', isAuthenticated, listUserSessions)
 
+
 export default router;
