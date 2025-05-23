@@ -192,11 +192,22 @@ export const profile = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
+    // ☑️ For Development
     res.cookie("token", "", {
       httpOnly: true,
       secure: true,
       sameSite: "none",
       expires: new Date(0), // Immediately expire the cookie
+    });
+
+    // ✅ For Production
+    res.cookie("token", "", {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      domain: ".webifyit.in",
+      path: "/", 
+      expires: new Date(0)
     });
 
     // If user exists in request, clear their token in DB
