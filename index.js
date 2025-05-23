@@ -20,8 +20,8 @@ const app = express();
 //   allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
 //   exposedHeaders: ['set-cookie'], // Expose set-cookie header for credentials
 // }));
-// app.use(cors({ origin: "http://localhost:3000", credentials: true}));
-app.use(cors({ origin: "https://msgzone.vercel.app", credentials: true}));
+app.use(cors({ origin: ["http://localhost:3000", "https://msgzone.vercel.app", "https://whatsapp.webifyit.in"], credentials:true }));
+// app.use(cors({ origin: "https://msgzone.vercel.app", credentials: true}));
 app.use(cookieParser())
 
 connectDB();

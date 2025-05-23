@@ -49,25 +49,24 @@ export const login = async (req, res) => {
 
     const token = generateToken(user);
 
-    // For production
+    // ✅ For production
     res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "/",
-      });
-      
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
 
-    // For development 
+    // ☑️ For development
     // res.cookie("token", token, {
-    //     httpOnly: true,
-    //     secure: false,          // NO secure on localhost HTTP
-    //     sameSite: "lax",        // Use "lax" or "strict", but NOT "none" for localhost HTTP
-    //     maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    //     path: "/",
-    //   });
-      
+    //   httpOnly: true,
+    //   secure: false,          // NO secure on localhost HTTP
+    //   sameSite: "lax",        // Use "lax" or "strict", but NOT "none" for localhost HTTP
+    //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+    //   path: "/",
+    // });
 
     user.lastLogin = new Date();
     user.token = token;
