@@ -270,7 +270,7 @@ export const sendSingle = async (req, res) => {
     messageLog.status = "delivered";
     await messageLog.save();
 
-    res.json({ status: true, message: "Message sent" });
+    return res.json({ status: true, message: "Message sent" });
   } catch (err) {
     results.push({
       number,
@@ -282,8 +282,8 @@ export const sendSingle = async (req, res) => {
     messageLog.messages = results;
     messageLog.status = "error";
     await messageLog.save();
-    logger.error(`Send message failed: ${err.message}`);
-    res.status(500).json({ status: false, message: "Failed to send message" });
+    logger.error(`Send message failed : ${err.message}`);
+    return res.status(500).json({ status: false, message: "Failed to send message" });
   }
 };
 
