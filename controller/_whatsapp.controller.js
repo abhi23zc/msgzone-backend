@@ -338,7 +338,7 @@ export const listUserSessions = async (req, res) => {
 
 // Whatsapp api's endpoints
 export const sendMessageApi = async (req, res) => {
-  const { apikey, to:number, message, deviceId } = req.query;
+  let { apikey, to:number, message, deviceId } = req.query;
 
   // const { deviceId, number, message, timer } = req.body;
   const userId = req.user.userId;
@@ -347,6 +347,7 @@ export const sendMessageApi = async (req, res) => {
       .status(400)
       .json({ status: false, message: "Missing required fields" });
   }
+  message = decodeURIComponent(message);
   const clientId = `${req.user.userId}-${deviceId}`;
 
   const session = getSession(clientId);
