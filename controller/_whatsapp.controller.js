@@ -260,7 +260,18 @@ export const sendSingle = async (req, res) => {
   try {
     const [result] = await session.sock.onWhatsApp(jid);
     if (!result?.exists) {
-      throw new Error("Number not found on WhatsApp")
+      results.push({
+        number,
+        text: message,
+        status: "error",
+        sendFrom: deviceId,
+        sendTo: number,
+      });
+      messageLog.messages = results;
+      messageLog.status = "error";
+      await messageLog.save();
+      return res.json({ status: true, message: "Message sent" });
+
     }
     await session.sock.sendMessage(jid, { text: message });
     results.push({
@@ -322,6 +333,9 @@ export const listUserSessions = async (req, res) => {
   res.json({ success: true, data: sessions, message: "Sessions listed" });
 };
 
+
+
+
 // Whatsapp api's endpoints
 export const sendMessageApi = async (req, res) => {
   const { apikey, to:number, message, deviceId } = req.query;
@@ -348,6 +362,20 @@ export const sendMessageApi = async (req, res) => {
   const messageLog = new MessageLog({ userId, messages: [] });
   const results = [];
   try {
+    const [result] = await session.sock.onWhatsApp(jid);
+    if (!result?.exists) {
+      results.push({
+        number,
+        text: message,
+        status: "error",
+        sendFrom: deviceId,
+        sendTo: number,
+      });
+      messageLog.messages = results;
+      messageLog.status = "error";
+      await messageLog.save();
+      return res.json({ status: true, message: "Message sent" });
+    }
     await session.sock.sendMessage(jid, { text: message });
     results.push({
       number,
@@ -365,7 +393,7 @@ export const sendMessageApi = async (req, res) => {
     results.push({
       number,
       text: message,
-      status: "delivered",
+      status: "error",
       sendFrom: deviceId,
       sendTo: number,
     });
