@@ -12,7 +12,9 @@ import { fileURLToPath } from "url";
 import { MessageLog } from "../models/message.log.schema.js";
 import logger from "../utils/logger.js";
 import { User } from "../models/user.Schema.js";
-
+import { generateApiKey } from "../utils/apikey.js";
+import { ApiKey } from "../models/api.key.Schema.js";
+import redis from "../utils/redis.js";
 const sessions = {};
 
 const __filename = fileURLToPath(import.meta.url);
@@ -271,7 +273,6 @@ export const sendSingle = async (req, res) => {
       messageLog.status = "error";
       await messageLog.save();
       return res.json({ status: true, message: "Message sent" });
-
     }
     await session.sock.sendMessage(jid, { text: message });
     results.push({
@@ -298,7 +299,9 @@ export const sendSingle = async (req, res) => {
     messageLog.status = "error";
     await messageLog.save();
     logger.error(`Send message failed : ${err.message}`);
-    return res.status(500).json({ status: false, message: "Failed to send message" });
+    return res
+      .status(500)
+      .json({ status: false, message: "Failed to send message" });
   }
 };
 
@@ -333,11 +336,182 @@ export const listUserSessions = async (req, res) => {
   res.json({ success: true, data: sessions, message: "Sessions listed" });
 };
 
-
-
-
-// Whatsapp api's endpoints
+//🚀 Whatsapp api's endpoints
 export const sendMessageApi = async (req, res) => {
+  let { apikey, to: number, message } = req.query;
+
+  // const { deviceId, number, message, timer } = req.body;
+  const userId = req?.userId;
+  const deviceId = req.deviceId;
+  if (!userId) return res.json({ status: false, message: "Invalid user" });
+  if (!apikey || !number || !message || !deviceId) {
+    return res
+      .status(400)
+      .json({ status: false, message: "Missing required fields" });
+  }
+  message = decodeURIComponent(message);
+
+  const clientId = `${userId}-${deviceId}`;
+
+  const session = getSession(clientId);
+  if (!session || !session.user) {
+    return res
+      .status(400)
+      .json({ status: false, message: "Client not logged in" });
+  }
+
+  const jid = number.includes("@s.whatsapp.net")
+    ? number
+    : `${number}@s.whatsapp.net`;
+  const messageLog = new MessageLog({ userId, messages: [] });
+  const results = [];
+  try {
+    const [result] = await session.sock.onWhatsApp(jid);
+    if (!result?.exists) {
+      results.push({
+        number,
+        text: message,
+        status: "error",
+        sendFrom: deviceId,
+        sendTo: number,
+      });
+      messageLog.messages = results;
+      messageLog.status = "error";
+      await messageLog.save();
+      return res.json({ status: true, message: "Message sent" });
+    }
+    await session.sock.sendMessage(jid, { text: message });
+    results.push({
+      number,
+      text: message,
+      status: "delivered",
+      sendFrom: deviceId,
+      sendTo: number,
+    });
+    messageLog.messages = results;
+    messageLog.status = "delivered";
+    await messageLog.save();
+
+    res.json({ status: true, message: "Message sent" });
+  } catch (err) {
+    results.push({
+      number,
+      text: message,
+      status: "error",
+      sendFrom: deviceId,
+      sendTo: number,
+    });
+    messageLog.messages = results;
+    messageLog.status = "error";
+    await messageLog.save();
+    logger.error(`Send message failed: ${err.message}`);
+    res.status(500).json({ status: false, message: "Failed to send message" });
+  }
+};
+
+// ✅ Generate API KEY
+export const generateDeviceApiKey = async (req, res) => {
+  const { deviceId } = req.body || {};
+  const userId = req.user?.userId;
+
+  if (!deviceId) {
+    return res.status(400).json({ message: "Device ID is required" });
+  }
+  const user = await User.findById(userId);
+  if (!user) {
+    return res
+      .status(404)
+      .json({ status: false, data: null, message: "User not found" });
+  }
+  const deviceExists = user.devices.some((d) => d.deviceId === deviceId);
+  if (!deviceExists) {
+    return res.status(400).json({ message: "Invalid device ID" });
+  }
+  const apiKeyExists = await ApiKey.findOne({ deviceId, userId });
+  if (apiKeyExists)
+    return res
+      .status(400)
+      .json({ status: false, data: null, message: "Api key already exists" });
+
+  const rawKey = generateApiKey();
+  // const hashedKey = hashApiKey(rawKey);
+
+  await ApiKey.create({
+    apiKey: rawKey,
+    deviceId,
+    userId,
+    status: "active",
+  });
+
+  return res
+    .status(201)
+    .json({
+      status: true,
+      message: "Api key generated succesfully",
+      data: { apiKey: rawKey, deviceId },
+    });
+};
+
+// ✅Regenerate API KEY
+export const re_generateDeviceApiKey = async (req, res) => {
+  const { deviceId } = req.body || {};
+  const userId = req.user?.userId;
+  if (!deviceId) {
+    return res.status(400).json({ message: "Device ID is required" });
+  }
+  const user = await User.findById(userId);
+  if (!user) {
+    return res
+      .status(404)
+      .json({ status: false, data: null, message: "User not found" });
+  }
+  const deviceExists = user.devices.some((d) => d.deviceId === deviceId);
+  if (!deviceExists) {
+    return res.status(400).json({ message: "Invalid device ID" });
+  }
+  const apiKeyExists = await ApiKey.findOne({ deviceId, userId });
+  if (!apiKeyExists)
+    return res
+      .status(400)
+      .json({ status: false, data: null, message: "Api key not found" });
+  const redisKey = `apikey:${apiKeyExists?.apiKey}`
+  console.log(redisKey);
+  await redis.del(redisKey);
+  const rawKey = generateApiKey();
+  // const hashedKey = hashApiKey(rawKey);
+  apiKeyExists.apiKey = rawKey;
+  apiKeyExists.status = "active";
+  apiKeyExists.createdAt = Date.now();
+  await apiKeyExists.save();
+
+  return res
+    .status(201)
+    .json({
+      status: true,
+      message: "Api key regenerated succesfully",
+      data: { apiKey: rawKey, deviceId },
+    });
+};
+
+// ✅ Get API KEYS
+export const getApiKeys = async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    const apiKeys = await ApiKey.find({ userId });
+    return res
+      .status(200)
+      .json({ status: true, data: apiKeys, message: "API keys fetched" });
+  } catch (error) {
+    logger.error(`Failed to fetch API keys: ${error.message}`);
+    return res
+      .status(500)
+      .json({ status: false, data: null, message: "Failed to fetch API keys" });
+  }
+};
+
+
+// ❌ Save this endpoint for older version 
+export const sendMessageApiOld = async (req, res) => {
   let { apikey, to:number, message, deviceId } = req.query;
 
   // const { deviceId, number, message, timer } = req.body;

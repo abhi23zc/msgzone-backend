@@ -1,20 +1,51 @@
-import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
+import { ApiKey } from '../models/api.key.Schema.js';
+import redis from "../utils/redis.js";
 dotenv.config()
-export const isApiAuthenticated = (req, res, next) => {
-  const { apikey} = req.query;
-//   console.log(apikey) 
-  let token = apikey;
 
+// 👀 check api authentication
+export const isApiAuthenticated = async (req, res, next) => {
+  const apiKey = req.headers['x-api-key'] || req.query.apikey;
+
+  if (!apiKey) {
+    return res.status(401).json({ status:false, data:null, message: "API key missing" });
+  }
+
+  // const hashed = hashApiKey(apiKey);
+  const hashed = (apiKey);
+  const redisKey = `apikey:${hashed}`;
+  
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || "abhi@321");
-    req.user = decoded;
+    // 🔍 1. Try Redis first
+    const cached = await redis.get(redisKey);
+    if (cached) {
+      // console.log("🔍 Cache hit", redisKey);
+      const parsed = JSON.parse(cached);
+      req.deviceId = parsed.deviceId;
+      req.userId = parsed.userId;
+      return next();
+    }
+
+    // 🔍 2. Fallback to DB
+    const keyDoc = await ApiKey.findOne({ apiKey: hashed });
+    if (!keyDoc) {
+      return res.status(401).json({ status:false, data:null, message: "Invalid API key" });
+    }
+
+    // 💾 3. Cache it in Redis for future
+    await redis.set(redisKey, JSON.stringify({
+      userId: keyDoc.userId,
+      deviceId: keyDoc.deviceId
+    }), 'EX', 10); // 24 hours
+
+    req.deviceId = keyDoc.deviceId;
+    req.userId = keyDoc.userId;
     next();
   } catch (err) {
-    return res.status(401).json({
-      success: false,
-      message: "apikey is not valid",
-      data: null,
-    });
+    console.error("Redis error", err);
+    return res.status(500).json({status:false, data:null, message: "Internal error" });
   }
 };
+
+
+

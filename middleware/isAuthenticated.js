@@ -4,7 +4,6 @@ export const isAuthenticated = (req, res, next) => {
 
     console.log("request.....")
     let token = req.cookies?.token;
-    
     if (!token) {
         const authHeader = req.headers.authorization;
         if (!authHeader || !authHeader.startsWith("Bearer ")) {
