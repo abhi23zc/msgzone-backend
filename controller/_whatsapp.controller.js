@@ -258,6 +258,10 @@ export const sendSingle = async (req, res) => {
   const messageLog = new MessageLog({ userId, messages: [] });
   const results = [];
   try {
+    const [result] = await session.sock.onWhatsApp(jid);
+    if (!result?.exists) {
+      throw new Error("Number not found on WhatsApp")
+    }
     await session.sock.sendMessage(jid, { text: message });
     results.push({
       number,
@@ -275,7 +279,7 @@ export const sendSingle = async (req, res) => {
     results.push({
       number,
       text: message,
-      status: "delivered",
+      status: "error",
       sendFrom: deviceId,
       sendTo: number,
     });

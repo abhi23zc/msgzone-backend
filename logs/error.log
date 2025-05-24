@@ -2,3 +2,4 @@
 [2025-05-17 16:02:26] ERROR: Error creating client for 682438d25c23d3b9eef628db-business: req is not defined
 [2025-05-17 16:05:11] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
 [2025-05-17 16:17:15] ERROR: Send message failed: results is not defined
+[2025-05-24 13:17:44] ERROR: Send message failed : Number not found on WhatsApp
