@@ -1797,3 +1797,57 @@
 [2025-05-25 01:12:10] INFO: Creating session for: 68274484c1cd62ff3e834395-business
 [2025-05-25 01:12:13] INFO: [68274484c1cd62ff3e834395-abhi] Logged in as 919473634215:81@s.whatsapp.net
 [2025-05-25 01:12:13] INFO: [68274484c1cd62ff3e834395-business] Logged in as 919473634215:80@s.whatsapp.net
+[2025-05-25 16:42:38] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-25 16:42:39] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-25 16:42:40] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 16:42:41] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 16:45:06] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-25 16:45:06] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-25 16:45:08] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 16:45:08] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 16:46:14] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-25 16:46:14] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-25 16:46:17] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 16:46:17] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 23:42:23] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-25 23:42:24] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-25 23:42:26] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 23:42:26] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-25 23:46:47] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-25 23:46:49] INFO: [682acba99dc00d39a6e11850-ZRF] QR generated
+[2025-05-25 23:46:54] WARN: [682acba99dc00d39a6e11850-ZRF] Connection closed. Reconnect: true
+[2025-05-25 23:46:54] INFO: [682acba99dc00d39a6e11850-ZRF] Attempting reconnection...
+[2025-05-25 23:46:54] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-25 23:46:57] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 00:53:47] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-26 00:53:48] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-26 00:53:48] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 00:53:49] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:53:50] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 00:53:50] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:54:55] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-26 00:54:56] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-26 00:54:56] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 00:54:57] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:54:57] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:54:58] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 00:56:01] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-26 00:56:02] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-26 00:56:02] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 00:56:04] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:56:04] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:56:04] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 00:56:56] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-26 00:56:57] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-26 00:56:57] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 00:56:58] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 00:56:59] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 00:56:59] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 01:02:14] INFO: Creating session for: 68274484c1cd62ff3e834395-abhi
+[2025-05-26 01:02:15] INFO: Creating session for: 68274484c1cd62ff3e834395-business
+[2025-05-26 01:02:15] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 01:02:16] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 01:02:16] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-26 01:02:17] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 01:02:59] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 01:03:01] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
