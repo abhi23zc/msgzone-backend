@@ -1,71 +1,53 @@
-import { MessageLog } from "../models/message.log.schema.js";
-export const getAllMessages = async (req, res, next) => {
+import { MessageLog } from "../models/_message.log.schema.js";
+
+// ✅ Get all messages for the current user
+export const getAllMessages = async (req, res) => {
   try {
     const userId = req?.user?.userId;
     const messageLogs = await MessageLog.find({ userId });
-    if (!messageLogs)
-      return res.json({
+
+    if (!messageLogs?.length) {
+      return res.status(404).json({
         success: false,
-        data: null,
-        message: "No Messages found",
+        data: [],
+        message: "No messages found",
       });
+    }
     return res.json({
       success: true,
       data: messageLogs,
-      message: "Messages found",
+      message: "Messages retrieved successfully",
     });
   } catch (error) {
-    return res.json({
+    console.error("Error getting messages:", error);
+    return res.status(500).json({
       success: false,
       data: null,
-      message: "Server error occured",
+      message: "Server error occurred",
     });
   }
 };
-export const getTodayMessages = async (req, res, next) => {
-    try {
-      const userId = req?.user?.userId;
-  
-      
-      const messageLogs = await MessageLog.find({ userId });
-  
-      
-      const startOfToday = new Date();
-      startOfToday.setHours(0, 0, 0, 0);
-  
-      const endOfToday = new Date();
-      endOfToday.setHours(23, 59, 59, 999);
-  
-  
-      const todayMessages = [];
-  
-      messageLogs.forEach((log) => {
-        const todays = log.messages.filter((msg) => {
-          const msgDate = new Date(msg.createdAt);
-          return msgDate >= startOfToday && msgDate <= endOfToday;
-        });
-        todayMessages.push(...todays); 
-      });
-  
-      if (!todayMessages.length) {
-        return res.json({
-          success: false,
-          data: null,
-          message: "No messages found for today",
-        });
-      }
-  
-      return res.json({
-        success: true,
-        data: todayMessages,
-        message: "Messages found",
-      });
-    } catch (error) {
-      return res.json({
-        success: false,
-        data: null,
-        message: "Server error occurred",
-      });
-    }
-  };
-  
+
+// ✅ Get only today's messages for the current user
+export const getTodayMessages = async (req, res) => {
+  try {
+    // Get the start and end of today
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const messages = await MessageLog.find({
+      createdAt: {
+        $gte: startOfDay,
+        $lte: endOfDay,
+      },
+    }).limit(25).sort({ createdAt: -1 }); 
+
+    res.status(200).json({ success: true, data: messages });
+  } catch (error) {
+    console.error("Error fetching today's messages:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};

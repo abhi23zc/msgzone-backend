@@ -21,3 +21,7 @@
 [2025-05-26 00:56:59] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
 [2025-05-26 01:02:16] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
 [2025-05-26 01:02:16] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-27 15:35:23] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-27 16:09:39] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-27 21:27:32] ERROR: Send message failed: MessageLog validation failed: sendThrough: Path `sendThrough` is required.
+[2025-05-27 21:39:43] ERROR: Send message failed: msgPayload is not defined

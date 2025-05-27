@@ -14,13 +14,6 @@ import redisClient from "./utils/redis.js";
 const PORT = process.env.PORT || 8080;
 const app = express();
 
-// app.use(cors({
-//   origin: 'https://msgzone.vercel.app',  // Remove trailing slash to match exact origin
-//   credentials: true,
-//   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'], // Explicitly allow methods
-//   allowedHeaders: ['Content-Type', 'Authorization'], // Specify allowed headers
-//   exposedHeaders: ['set-cookie'], // Expose set-cookie header for credentials
-// }));
 app.use(cors({ origin: ["http://localhost:3000", "https://msgzone.vercel.app", "https://whatsapp.webifyit.in"], credentials:true }));
 // app.use(cors({ origin: "https://msgzone.vercel.app", credentials: true}));
 app.use(cookieParser())
@@ -52,5 +45,5 @@ async function initializeRedis() {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   restoreSessions()
-  initializeRedis()
+  // initializeRedis()
 });

@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-const messageLogSchema = new mongoose.Schema({
+const messageLogSchemaOld = new mongoose.Schema({
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     messages: [{
         text: String,
@@ -18,4 +18,4 @@ const messageLogSchema = new mongoose.Schema({
     sentAt: Date,
 });
 
-export const MessageLog = mongoose.model('MessageLog', messageLogSchema);
+export const MessageLogOld = mongoose.model('MessageLogOld', messageLogSchemaOld);

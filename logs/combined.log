@@ -1851,3 +1851,439 @@
 [2025-05-26 01:02:17] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
 [2025-05-26 01:02:59] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
 [2025-05-26 01:03:01] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 01:21:50] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 01:21:53] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 01:22:36] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 01:22:38] INFO: [682acba99dc00d39a6e11850-ZRF] Logged in as 919473634215:82@s.whatsapp.net
+[2025-05-26 22:13:23] INFO: Creating session for: 682acba99dc00d39a6e11850-ZRF
+[2025-05-26 22:13:29] WARN: [682acba99dc00d39a6e11850-ZRF] Connection closed. Reconnect: false
+[2025-05-26 22:13:30] INFO: Session folder removed: C:\Users\ABHI\Documents\ABHI\Agency\msgzone\development\server\sessions\682acba99dc00d39a6e11850-ZRF
+[2025-05-26 22:16:42] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:16:44] INFO: [682acba99dc00d39a6e11850-business] QR generated
+[2025-05-26 22:16:59] WARN: [682acba99dc00d39a6e11850-business] Connection closed. Reconnect: true
+[2025-05-26 22:16:59] INFO: [682acba99dc00d39a6e11850-business] Attempting reconnection...
+[2025-05-26 22:16:59] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:17:01] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-26 22:19:52] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:19:55] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-26 22:22:03] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:22:05] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-26 22:23:09] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:23:12] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-26 22:23:55] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:23:58] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-26 22:25:40] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:25:43] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-26 22:27:25] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-26 22:27:27] INFO: [682acba99dc00d39a6e11850-business] Logged in as 919473634215:86@s.whatsapp.net
+[2025-05-27 15:35:20] INFO: Creating session for: 682acba99dc00d39a6e11850-business
+[2025-05-27 15:35:23] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-27 16:09:11] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:09:14] INFO: [68358e820828883bd288ae9f-business] QR generated
+[2025-05-27 16:09:39] WARN: [682acba99dc00d39a6e11850-business] Connection closed. Reconnect: false
+[2025-05-27 16:09:39] ERROR: Connection update error: Cannot read properties of null (reading 'devices')
+[2025-05-27 16:09:40] INFO: Session folder removed: C:\Users\ABHI\Documents\ABHI\Agency\msgzone\development\server\sessions\682acba99dc00d39a6e11850-business
+[2025-05-27 16:09:44] WARN: [68358e820828883bd288ae9f-business] QR not scanned in time. Destroying session.
+[2025-05-27 16:09:44] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: false
+[2025-05-27 16:09:44] INFO: Session 68358e820828883bd288ae9f-business destroyed
+[2025-05-27 16:09:45] INFO: Session folder removed: C:\Users\ABHI\Documents\ABHI\Agency\msgzone\development\server\sessions\68358e820828883bd288ae9f-business
+[2025-05-27 16:09:59] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:10:01] INFO: [68358e820828883bd288ae9f-business] QR generated
+[2025-05-27 16:10:08] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:10:08] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:10:08] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:10:11] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 16:15:58] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:16:00] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 16:20:47] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:20:49] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 16:22:34] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:22:37] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 16:25:15] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:25:18] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 16:25:50] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:25:52] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 16:48:17] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:17] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:18] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:19] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:19] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:19] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:20] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:20] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:21] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 16:48:21] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 16:48:21] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 16:48:23] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 17:16:34] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 17:16:37] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 20:50:22] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 20:50:25] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:16:37] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:37] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:37] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:39] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:39] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:39] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:39] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:39] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:39] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:40] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:40] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:40] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:41] WARN: [68358e820828883bd288ae9f-business] Connection closed. Reconnect: true
+[2025-05-27 21:16:41] INFO: [68358e820828883bd288ae9f-business] Attempting reconnection...
+[2025-05-27 21:16:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:16:44] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:18:51] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:18:54] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:23:34] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:23:37] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:24:13] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:24:16] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:27:18] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:27:21] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:27:32] ERROR: Send message failed: MessageLog validation failed: sendThrough: Path `sendThrough` is required.
+[2025-05-27 21:27:55] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:27:58] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:38:43] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:38:46] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:39:15] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:39:18] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:39:43] ERROR: Send message failed: msgPayload is not defined
+[2025-05-27 21:40:41] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:40:44] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:42:18] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:42:21] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:44:17] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:44:19] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:44:58] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:45:00] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:45:20] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:45:22] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:54:00] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:54:03] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net
+[2025-05-27 21:55:29] INFO: Creating session for: 68358e820828883bd288ae9f-business
+[2025-05-27 21:55:31] INFO: [68358e820828883bd288ae9f-business] Logged in as 919473634215:88@s.whatsapp.net

@@ -9,7 +9,7 @@ import qrcode from "qrcode";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { MessageLog } from "../models/message.log.schema.js";
+import { MessageLog } from "../models/_message.log.schema.js";
 import logger from "../utils/logger.js";
 import { User } from "../models/user.Schema.js";
 import { generateApiKey } from "../utils/apikey.js";
@@ -236,73 +236,241 @@ export const connect = async (req, res) => {
     .json({ status: false, message: "Failed to generate QR", data: null });
 };
 
-// ✅ Send message
+// ❌ Send message Old
+// export const sendSingle = async (req, res) => {
+//   const { deviceId, number, message, timer } = req.body;
+//   const userId = req.user.userId;
+//   if (!deviceId || !number || !message) {
+//     return res
+//       .status(400)
+//       .json({ status: false, message: "Missing required fields" });
+//   }
+//   const clientId = `${req.user.userId}-${deviceId}`;
+
+//   const session = getSession(clientId);
+//   if (!session || !session.user) {
+//     return res
+//       .status(400)
+//       .json({ status: false, message: "Client not logged in" });
+//   }
+
+//   const jid = number.includes("@s.whatsapp.net")
+//     ? number
+//     : `${number}@s.whatsapp.net`;
+//   const messageLog = new MessageLog({ userId, messages: [] });
+//   const results = [];
+//   try {
+//     const [result] = await session.sock.onWhatsApp(jid);
+//     if (!result?.exists) {
+//       results.push({
+//         number,
+//         text: message,
+//         status: "error",
+//         sendFrom: deviceId,
+//         sendTo: number,
+//       });
+//       messageLog.messages = results;
+//       messageLog.status = "error";
+//       await messageLog.save();
+//       return res.json({ status: true, message: "Message sent" });
+//     }
+//     await session.sock.sendMessage(jid, { text: message });
+//     results.push({
+//       number,
+//       text: message,
+//       status: "delivered",
+//       sendFrom: deviceId,
+//       sendTo: number,
+//     });
+//     messageLog.messages = results;
+//     messageLog.status = "delivered";
+//     await messageLog.save();
+
+//     return res.json({ status: true, message: "Message sent" });
+//   } catch (err) {
+//     results.push({
+//       number,
+//       text: message,
+//       status: "error",
+//       sendFrom: deviceId,
+//       sendTo: number,
+//     });
+//     messageLog.messages = results;
+//     messageLog.status = "error";
+//     await messageLog.save();
+//     logger.error(`Send message failed : ${err.message}`);
+//     return res
+//       .status(500)
+//       .json({ status: false, message: "Failed to send message" });
+//   }
+// };
+
+// ✅ Send Single Message 
 export const sendSingle = async (req, res) => {
   const { deviceId, number, message, timer } = req.body;
   const userId = req.user.userId;
+
   if (!deviceId || !number || !message) {
-    return res
-      .status(400)
-      .json({ status: false, message: "Missing required fields" });
+    return res.status(400).json({ status: false, message: "Missing required fields" });
   }
-  const clientId = `${req.user.userId}-${deviceId}`;
 
+  const clientId = `${userId}-${deviceId}`;
   const session = getSession(clientId);
+
   if (!session || !session.user) {
-    return res
-      .status(400)
-      .json({ status: false, message: "Client not logged in" });
+    return res.status(400).json({ status: false, message: "Client not logged in" });
   }
 
-  const jid = number.includes("@s.whatsapp.net")
-    ? number
-    : `${number}@s.whatsapp.net`;
-  const messageLog = new MessageLog({ userId, messages: [] });
-  const results = [];
+  const jid = number.includes("@s.whatsapp.net") ? number : `${number}@s.whatsapp.net`;
+
   try {
     const [result] = await session.sock.onWhatsApp(jid);
     if (!result?.exists) {
-      results.push({
-        number,
-        text: message,
-        status: "error",
+      const failedLog = await MessageLog.create({
+        userId,
         sendFrom: deviceId,
         sendTo: number,
+        text: message,
+        status: "error",
+        errorMessage: "Number does not exist",
+        type: "single",
       });
-      messageLog.messages = results;
-      messageLog.status = "error";
-      await messageLog.save();
-      return res.json({ status: true, message: "Message sent" });
+
+      return res.json({ status: true, message: "Number does not exist", logId: failedLog._id });
     }
+
+    // If a timer (scheduledTime) is set, store and return early
+    if (timer) {
+      const scheduledLog = await MessageLog.create({
+        userId,
+        sendFrom: deviceId,
+        sendTo: number,
+        text: message,
+        status: "scheduled",
+        scheduledTime: new Date(timer),
+        type: "single",
+      });
+
+      return res.json({ status: true, message: "Message scheduled", data:scheduledLog._id });
+    }
+
+    // Send message immediately
     await session.sock.sendMessage(jid, { text: message });
-    results.push({
-      number,
+
+    const successLog = await MessageLog.create({
+      userId,
+      sendFrom: deviceId,
+      sendTo: number,
       text: message,
       status: "delivered",
+      sentAt: new Date(),
+      type: "single",
+    });
+
+    return res.json({ status: true, message: "Message sent", logId: successLog._id });
+
+  } catch (err) {
+    logger.error(`Send message failed: ${err.message}`);
+
+    const errorLog = await MessageLog.create({
+      userId,
       sendFrom: deviceId,
       sendTo: number,
-    });
-    messageLog.messages = results;
-    messageLog.status = "delivered";
-    await messageLog.save();
-
-    return res.json({ status: true, message: "Message sent" });
-  } catch (err) {
-    results.push({
-      number,
       text: message,
       status: "error",
-      sendFrom: deviceId,
-      sendTo: number,
+      errorMessage: err.message,
+      type: "single",
     });
-    messageLog.messages = results;
-    messageLog.status = "error";
-    await messageLog.save();
-    logger.error(`Send message failed : ${err.message}`);
-    return res
-      .status(500)
-      .json({ status: false, message: "Failed to send message" });
+
+    return res.status(500).json({ status: false, message: "Failed to send message", logId: errorLog._id });
   }
+};
+
+
+// ✅ Send BUlk Messages 
+export const sendBulk = async (req, res) => {
+  const { deviceId, numbers, message, timer } = req.body;
+  const userId = req.user.userId;
+
+  if (!deviceId || !numbers || !Array.isArray(numbers) || numbers.length === 0 || !message) {
+    return res.status(400).json({ status: false, message: "Missing or invalid fields" });
+  }
+
+  // Default delay to 0ms if not provided
+  const delayMs = parseInt(timer*1000) || 1000;
+
+  const clientId = `${userId}-${deviceId}`;
+  const session = getSession(clientId);
+
+  if (!session || !session.user) {
+    return res.status(400).json({ status: false, message: "Client not logged in" });
+  }
+
+  const logs = [];
+
+  for (const number of numbers) {
+    const jid = number.includes("@s.whatsapp.net") ? number : `${number}@s.whatsapp.net`;
+
+    try {
+      const [result] = await session.sock.onWhatsApp(jid);
+
+      if (!result?.exists) {
+        const failedLog = await MessageLog.create({
+          userId,
+          sendFrom: deviceId,
+          sendTo: number,
+          text: message,
+          status: "error",
+          errorMessage: "Number does not exist",
+          type: "bulk",
+        });
+
+        logs.push({ number, status: "error", logId: failedLog._id });
+        continue;
+      }
+
+      // Send message immediately
+      await session.sock.sendMessage(jid, { text: message });
+
+      const successLog = await MessageLog.create({
+        userId,
+        sendFrom: deviceId,
+        sendTo: number,
+        text: message,
+        status: "delivered",
+        sentAt: new Date(),
+        type: "bulk",
+      });
+
+      logs.push({ number, status: "delivered", logId: successLog._id });
+
+    } catch (err) {
+      logger.error(`Bulk message failed for ${number}: ${err.message}`);
+
+      const errorLog = await MessageLog.create({
+        userId,
+        sendFrom: deviceId,
+        sendTo: number,
+        text: message,
+        status: "error",
+        errorMessage: err.message,
+        type: "bulk",
+      });
+
+      logs.push({ number, status: "error", logId: errorLog._id });
+    }
+
+    // Wait for delay between messages
+    if (delayMs > 0) {
+      await new Promise(resolve => setTimeout(resolve, delayMs));
+    }
+  }
+
+  return res.json({
+    status: true,
+    message: "Bulk message process completed",
+    results: logs,
+  });
 };
 
 // ✅ Logout & delete session
@@ -336,76 +504,87 @@ export const listUserSessions = async (req, res) => {
   res.json({ success: true, data: sessions, message: "Sessions listed" });
 };
 
-//🚀 Whatsapp api's endpoints
+
+//📜 Whatsapp api's endpoints started
+
+// ✅ Send Message API
 export const sendMessageApi = async (req, res) => {
-  let { apikey, to: number, message } = req.query;
-
-  // const { deviceId, number, message, timer } = req.body;
-  const userId = req?.userId;
-  const deviceId = req.deviceId;
-  if (!userId) return res.json({ status: false, message: "Invalid user" });
-  if (!apikey || !number || !message || !deviceId) {
-    return res
-      .status(400)
-      .json({ status: false, message: "Missing required fields" });
-  }
-  message = decodeURIComponent(message);
-
-  const clientId = `${userId}-${deviceId}`;
-
-  const session = getSession(clientId);
-  if (!session || !session.user) {
-    return res
-      .status(400)
-      .json({ status: false, message: "Client not logged in" });
-  }
-
-  const jid = number.includes("@s.whatsapp.net")
-    ? number
-    : `${number}@s.whatsapp.net`;
-  const messageLog = new MessageLog({ userId, messages: [] });
-  const results = [];
   try {
-    const [result] = await session.sock.onWhatsApp(jid);
-    if (!result?.exists) {
-      results.push({
-        number,
-        text: message,
-        status: "error",
-        sendFrom: deviceId,
-        sendTo: number,
-      });
-      messageLog.messages = results;
-      messageLog.status = "error";
-      await messageLog.save();
-      return res.json({ status: true, message: "Message sent" });
-    }
-    await session.sock.sendMessage(jid, { text: message });
-    results.push({
-      number,
-      text: message,
-      status: "delivered",
-      sendFrom: deviceId,
-      sendTo: number,
-    });
-    messageLog.messages = results;
-    messageLog.status = "delivered";
-    await messageLog.save();
+    const { apikey, to: numberRaw, message: rawMessage } = req.query;
+    const userId = req?.userId;
+    const deviceId = req?.deviceId;
 
-    res.json({ status: true, message: "Message sent" });
-  } catch (err) {
-    results.push({
-      number,
-      text: message,
-      status: "error",
+    if (!userId) return res.status(401).json({ status: false, message: "Invalid user" });
+    if (!apikey || !numberRaw || !rawMessage || !deviceId) {
+      return res.status(400).json({ status: false, message: "Missing required fields" });
+    }
+
+    const number = decodeURIComponent(numberRaw);
+    const message = decodeURIComponent(rawMessage);
+    const clientId = `${userId}-${deviceId}`;
+
+    const session = getSession(clientId);
+    if (!session || !session.user) {
+      return res.status(400).json({ status: false, message: "Client not logged in" });
+    }
+
+    const jid = number.includes("@s.whatsapp.net") ? number : `${number}@s.whatsapp.net`;
+
+    const [result] = await session.sock.onWhatsApp(jid);
+    const logData = {
+      userId,
       sendFrom: deviceId,
       sendTo: number,
+      text: message,
+      type: "single",
+      sendThrough: "api",
+    };
+
+    // Case: WhatsApp number does not exist
+    if (!result?.exists) {
+      logData.status = "error";
+      logData.errorMessage = "WhatsApp number does not exist";
+      await MessageLog.create(logData);
+
+      return res.json({
+        status: false,
+        message: "WhatsApp number does not exist",
+      });
+    }
+
+    // Try sending the message
+    await session.sock.sendMessage(jid, { text: message });
+
+    logData.status = "delivered";
+    logData.sentAt = new Date();
+    await MessageLog.create(logData);
+
+    return res.json({
+      status: true,
+      message: "Message sent successfully",
     });
-    messageLog.messages = results;
-    messageLog.status = "error";
-    await messageLog.save();
-    logger.error(`Send message failed: ${err.message}`);
-    res.status(500).json({ status: false, message: "Failed to send message" });
+  } catch (err) {
+    const { userId, deviceId } = req;
+
+    // Save error log
+    await MessageLog.create({
+      userId,
+      sendFrom: deviceId,
+      sendTo: req.query.to,
+      text: req.query.message,
+      type: "single",
+      status: "error",
+      sendThrough: "api",
+      errorMessage: err.message,
+    });
+
+    // Log error to console or custom logger
+    console.error("Failed to send message:", err);
+
+    return res.status(500).json({
+      status: false,
+      message: "Failed to send message",
+    });
   }
 };
 
@@ -443,13 +622,11 @@ export const generateDeviceApiKey = async (req, res) => {
     status: "active",
   });
 
-  return res
-    .status(201)
-    .json({
-      status: true,
-      message: "Api key generated succesfully",
-      data: { apiKey: rawKey, deviceId },
-    });
+  return res.status(201).json({
+    status: true,
+    message: "Api key generated succesfully",
+    data: { apiKey: rawKey, deviceId },
+  });
 };
 
 // ✅Regenerate API KEY
@@ -474,7 +651,7 @@ export const re_generateDeviceApiKey = async (req, res) => {
     return res
       .status(400)
       .json({ status: false, data: null, message: "Api key not found" });
-  const redisKey = `apikey:${apiKeyExists?.apiKey}`
+  const redisKey = `apikey:${apiKeyExists?.apiKey}`;
   console.log(redisKey);
   await redis.del(redisKey);
   const rawKey = generateApiKey();
@@ -484,13 +661,11 @@ export const re_generateDeviceApiKey = async (req, res) => {
   apiKeyExists.createdAt = Date.now();
   await apiKeyExists.save();
 
-  return res
-    .status(201)
-    .json({
-      status: true,
-      message: "Api key regenerated succesfully",
-      data: { apiKey: rawKey, deviceId },
-    });
+  return res.status(201).json({
+    status: true,
+    message: "Api key regenerated succesfully",
+    data: { apiKey: rawKey, deviceId },
+  });
 };
 
 // ✅ Get API KEYS
@@ -509,22 +684,26 @@ export const getApiKeys = async (req, res) => {
   }
 };
 
-
-// ❌ Save this endpoint for older version 
+// ❌ Save this endpoint for older version
 export const sendMessageApiOld = async (req, res) => {
-  let { apikey, to:number, message, deviceId } = req.query;
+  let { apikey, to: number, message, deviceId } = req.query;
 
-  // const { deviceId, number, message, timer } = req.body;
   const userId = req.user.userId;
+
   if (!apikey || !number || !message || !deviceId) {
     return res
       .status(400)
       .json({ status: false, message: "Missing required fields" });
   }
-  message = decodeURIComponent(message);
-  const clientId = `${req.user.userId}-${deviceId}`;
 
+  // Decode message text if present
+  if (message) {
+    message = decodeURIComponent(message);
+  }
+
+  const clientId = `${userId}-${deviceId}`;
   const session = getSession(clientId);
+
   if (!session || !session.user) {
     return res
       .status(400)
@@ -534,48 +713,58 @@ export const sendMessageApiOld = async (req, res) => {
   const jid = number.includes("@s.whatsapp.net")
     ? number
     : `${number}@s.whatsapp.net`;
-  const messageLog = new MessageLog({ userId, messages: [] });
-  const results = [];
+
   try {
     const [result] = await session.sock.onWhatsApp(jid);
     if (!result?.exists) {
-      results.push({
-        number,
-        text: message,
-        status: "error",
+      // Save message log with error status
+      const messageLog = new MessageLog({
+        userId,
         sendFrom: deviceId,
         sendTo: number,
+        text: message || "",
+        status: "error",
+        sendThrough: "api",
+        errorMessage: "Recipient does not exist on WhatsApp",
       });
-      messageLog.messages = results;
-      messageLog.status = "error";
       await messageLog.save();
-      return res.json({ status: true, message: "Message sent" });
+
+      return res.json({ status: false, message: "Recipient not found" });
     }
-    await session.sock.sendMessage(jid, { text: message });
-    results.push({
-      number,
-      text: message,
-      status: "delivered",
+
+
+    await session.sock.sendMessage(jid, {text: message});
+
+    // Save success log
+    const messageLog = new MessageLog({
+      userId,
       sendFrom: deviceId,
       sendTo: number,
+      text: message || "",
+      status: "delivered",
+      sendThrough: "api",
+      sentAt: new Date(),
     });
-    messageLog.messages = results;
-    messageLog.status = "delivered";
+
     await messageLog.save();
 
     res.json({ status: true, message: "Message sent" });
   } catch (err) {
-    results.push({
-      number,
-      text: message,
-      status: "error",
+    // Save error log
+    const messageLog = new MessageLog({
+      userId,
       sendFrom: deviceId,
       sendTo: number,
+      text: message || "",
+      status: "error",
+      sendThrough: "api",
+      errorMessage: "Internal Error",
     });
-    messageLog.messages = results;
-    messageLog.status = "error";
+
     await messageLog.save();
+
     logger.error(`Send message failed: ${err.message}`);
     res.status(500).json({ status: false, message: "Failed to send message" });
   }
 };
+
