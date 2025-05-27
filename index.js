@@ -45,5 +45,5 @@ async function initializeRedis() {
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
   restoreSessions()
-  // initializeRedis()
+  initializeRedis()
 });
