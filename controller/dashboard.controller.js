@@ -4,7 +4,7 @@ import { MessageLog } from "../models/_message.log.schema.js";
 export const getAllMessages = async (req, res) => {
   try {
     const userId = req?.user?.userId;
-    const messageLogs = await MessageLog.find({ userId });
+    const messageLogs = await MessageLog.find({ userId }).sort({ createdAt: -1 });
 
     if (!messageLogs?.length) {
       return res.status(404).json({
