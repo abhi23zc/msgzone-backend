@@ -31,6 +31,7 @@ export const getAllMessages = async (req, res) => {
 // ✅ Get only today's messages for the current user
 export const getTodayMessages = async (req, res) => {
   try {
+    const userId = req?.user?.userId;
     // Get the start and end of today
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
@@ -39,12 +40,12 @@ export const getTodayMessages = async (req, res) => {
     endOfDay.setHours(23, 59, 59, 999);
 
     const messages = await MessageLog.find({
+      userId,
       createdAt: {
         $gte: startOfDay,
         $lte: endOfDay,
       },
-    }).limit(25).sort({ createdAt: -1 }); 
-
+    }).limit(25).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: messages });
   } catch (error) {
     console.error("Error fetching today's messages:", error);
