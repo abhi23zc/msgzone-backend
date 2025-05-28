@@ -45,7 +45,7 @@ export const getTodayMessages = async (req, res) => {
         $gte: startOfDay,
         $lte: endOfDay,
       },
-    }).limit(25).sort({ createdAt: -1 });
+    }).sort({ createdAt: -1 });
     res.status(200).json({ success: true, data: messages });
   } catch (error) {
     console.error("Error fetching today's messages:", error);
