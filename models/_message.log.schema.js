@@ -18,7 +18,7 @@ const messageLogSchema = new mongoose.Schema({
 
   sendFrom: { type: String, required: true },
   sendTo: { type: String, required: true },
-  sendThrough: { type: String },
+  sendThrough: { type: String, enum:['api', 'app'], default:"app" },
   text: { type: String },
   attachments: [attachmentSchema],
 
@@ -30,8 +30,8 @@ const messageLogSchema = new mongoose.Schema({
     default: "delivered",
   },
   errorMessage: { type: String }, // if failed
-
-  scheduledTime: { type: Date }, // for scheduled messages
+  isScheduled: { type: Boolean, default: false },
+  scheduledAt: { type: Date }, // for scheduled messages
   sentAt: { type: Date }, // actual sent time
 
   createdAt: { type: Date, default: Date.now },

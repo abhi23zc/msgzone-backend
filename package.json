@@ -4,7 +4,8 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon index.js",
-    "start": "node index.js"
+    "start": "node index.js",
+    "start:worker": "node utils/messageWorker.js"
   },
   "type": "module",
   "keywords": [],
@@ -14,18 +15,23 @@
   "dependencies": {
     "@hapi/boom": "^10.0.1",
     "@whiskeysockets/baileys": "^6.7.16",
+    "bullmq": "^5.53.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
+    "html-to-text": "^9.0.5",
+    "html-to-whatsapp": "^1.0.0",
     "ioredis": "^5.6.1",
     "jsonwebtoken": "^9.0.2",
+    "moment": "^2.30.1",
     "mongoose": "^8.14.1",
+    "multer": "^2.0.0",
     "node-schedule": "^2.1.1",
     "nodemon": "^3.1.10",
     "qrcode": "^1.5.4",
-    "redis": "^5.1.0",
+    "rate-limiter-flexible": "^7.1.1",
     "whatsapp-web.js": "^1.27.0",
     "winston": "^3.17.0",
     "wwebjs-mongo": "^1.1.0"

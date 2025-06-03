@@ -15,13 +15,26 @@ import { User } from "../models/user.Schema.js";
 import { generateApiKey } from "../utils/apikey.js";
 import { ApiKey } from "../models/api.key.Schema.js";
 import redis from "../utils/redis.js";
-const sessions = {};
+import { messageQueue } from "../utils/messageQueue.js";
+import { v4 as uuid } from "uuid";
+import { worker } from "../utils/messageWorker.js";
+import moment from 'moment'
+import { htmlToWhatsapp } from "../utils/htmltoWhatsapp.js";
 
+const sessions = {};
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+worker.on("completed", (job) => {
+  console.log(`✅ Job completed: ${job.id}`);
+});
+worker.on("failed", (job, err) => {
+  console.log(`❌ Job failed: ${job.id}, Reason: ${err.message}`);
+});
+
 // ✅ Create client
 export async function createClient(clientId) {
+  const memBefore = process.memoryUsage().rss;
   try {
     const [userId, deviceId] = clientId?.split("-");
     const sessionFolder = path.join(__dirname, "..", "sessions", clientId);
@@ -40,8 +53,12 @@ export async function createClient(clientId) {
       version,
       auth: state,
       printQRInTerminal: false,
-      generateHighQualityLinkPreview: true,
-      getMessage: async () => ({}),
+      getMessage: async () => undefined,
+      generateHighQualityLinkPreview: false,
+      shouldSyncHistoryMessage: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
+      msgRetryCounterMap: {},
     });
 
     // Setup session
@@ -149,6 +166,10 @@ export async function createClient(clientId) {
         logger.error(`Failed to save credentials: ${err.message}`);
       }
     });
+    const memAfter = process.memoryUsage().rss;
+    logger.info(
+      `[${clientId}] Memory used: ${(memAfter - memBefore) / 1024 / 1024} MB`
+    );
   } catch (err) {
     logger.error(`Client creation failed: ${err.message}`);
     throw err;
@@ -162,15 +183,33 @@ export function getSession(clientId) {
 
 // ❌ Destroy session
 export function destroySession(clientId) {
-  if (sessions[clientId]) {
-    sessions[clientId].sock.logout().catch(() => {});
-    if (sessions[clientId]?.qrTimeout) {
-      clearTimeout(sessions[clientId].qrTimeout);
+  const session = sessions[clientId];
+  if (session) {
+    try {
+      session.sock.logout().catch(() => {});
+      session.sock.ws?.close();
+      session.sock.ev.removeAllListeners();
+    } catch (e) {
+      logger.warn(`[${clientId}] Error during logout: ${e.message}`);
     }
+
+    if (session.qrTimeout) {
+      clearTimeout(session.qrTimeout);
+    }
+
+    // Nullify everything
+    sessions[clientId].sock = null;
+    sessions[clientId].qr = null;
+    sessions[clientId].user = null;
+    sessions[clientId] = null;
     delete sessions[clientId];
 
     const sessionPath = path.join(__dirname, "..", "sessions", clientId);
-    fs.rmSync(sessionPath, { recursive: true, force: true });
+    try {
+      fs.rmSync(sessionPath, { recursive: true, force: true });
+    } catch (e) {
+      logger.warn(`Failed to remove session folder: ${e.message}`);
+    }
 
     logger.info(`Session ${clientId} destroyed`);
   }
@@ -236,7 +275,7 @@ export const connect = async (req, res) => {
     .json({ status: false, message: "Failed to generate QR", data: null });
 };
 
-// ❌ Send message Old
+// ❌ Send Single message Outdated
 // export const sendSingle = async (req, res) => {
 //   const { deviceId, number, message, timer } = req.body;
 //   const userId = req.user.userId;
@@ -305,111 +344,184 @@ export const connect = async (req, res) => {
 //   }
 // };
 
-// ✅ Send Single Message 
+// ✅ Send Single Message
 export const sendSingle = async (req, res) => {
-  const { deviceId, number, message, timer } = req.body;
+  const { deviceId, number, message } = req.body;
+  let captions = req.body.captions || [];
+  const attachments = req.files;
   const userId = req.user.userId;
-
-  if (!deviceId || !number || !message) {
-    return res.status(400).json({ status: false, message: "Missing required fields" });
+  captions = [...captions]; // convert to array
+  if (!deviceId || !number) {
+    if (attachments?.length)
+      attachments.forEach((file) => fs.unlinkSync(file.path));
+    return res
+      .status(400)
+      .json({ status: false, message: "Missing required fields" });
   }
 
-  const clientId = `${userId}-${deviceId}`;
-  const session = getSession(clientId);
-
-  if (!session || !session.user) {
-    return res.status(400).json({ status: false, message: "Client not logged in" });
-  }
-
-  const jid = number.includes("@s.whatsapp.net") ? number : `${number}@s.whatsapp.net`;
+  const tempAttachments = attachments?.length > 0 && attachments.map((file) => ({
+    path: file.path,
+    mimetype: file.mimetype,
+    originalname: file.originalname,
+  }));
 
   try {
-    const [result] = await session.sock.onWhatsApp(jid);
-    if (!result?.exists) {
-      const failedLog = await MessageLog.create({
+    await messageQueue.add(
+      "message-queue",
+      {
         userId,
-        sendFrom: deviceId,
-        sendTo: number,
-        text: message,
-        status: "error",
-        errorMessage: "Number does not exist",
-        type: "single",
-      });
-
-      return res.json({ status: true, message: "Number does not exist", logId: failedLog._id });
-    }
-
-    // If a timer (scheduledTime) is set, store and return early
-    if (timer) {
-      const scheduledLog = await MessageLog.create({
-        userId,
-        sendFrom: deviceId,
-        sendTo: number,
-        text: message,
-        status: "scheduled",
-        scheduledTime: new Date(timer),
-        type: "single",
-      });
-
-      return res.json({ status: true, message: "Message scheduled", data:scheduledLog._id });
-    }
-
-    // Send message immediately
-    await session.sock.sendMessage(jid, { text: message });
-
-    const successLog = await MessageLog.create({
-      userId,
-      sendFrom: deviceId,
-      sendTo: number,
-      text: message,
-      status: "delivered",
-      sentAt: new Date(),
-      type: "single",
+        deviceId,
+        number,
+        message : htmlToWhatsapp(message),
+        captions,
+        attachments: tempAttachments || [],
+      },
+      {
+        attempts: 2,
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+    console.log("📤 Job added to queue ✅");
+    return res
+      .status(200)
+      .json({ status: true, message: "Message Sent Succesfully", data: null });
+  } catch (error) {
+    console.error("❌ Failed to add job to queue:", error.message);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to queue message",
+      error: error.message,
     });
-
-    return res.json({ status: true, message: "Message sent", logId: successLog._id });
-
-  } catch (err) {
-    logger.error(`Send message failed: ${err.message}`);
-
-    const errorLog = await MessageLog.create({
-      userId,
-      sendFrom: deviceId,
-      sendTo: number,
-      text: message,
-      status: "error",
-      errorMessage: err.message,
-      type: "single",
-    });
-
-    return res.status(500).json({ status: false, message: "Failed to send message", logId: errorLog._id });
   }
 };
 
+// ✅ Send Single Message Schedule
+export const sendSingleSchedule = async (req, res) => {
+  const { deviceId, number, message, schedule } = req.body; 
+  let captions = req.body.captions || [];
+  const attachments = req.files;
+  const userId = req.user.userId;
 
-// ✅ Send BUlk Messages 
-export const sendBulk = async (req, res) => {
+  let scheduledAt = null;
+  
+  captions = [...captions];
+  
+  if (!deviceId || !number) {
+    if (attachments?.length)
+      attachments.forEach((file) => fs.unlinkSync(file.path));
+    return res.status(400).json({ 
+      status: false, 
+      message: "Missing required fields" 
+    });
+  }
+
+  if (schedule) {
+    const validFormat = moment(schedule, moment.ISO_8601, true).isValid();
+    if (!validFormat) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')"
+      });
+    }
+    
+    if (moment(schedule).isBefore(moment())) {
+      return res.status(400).json({
+        status: false,
+        message: "Schedule time must be in the future"
+      });
+    }
+  }
+
+  const tempAttachments = attachments?.length > 0 &&  attachments?.map((file) => ({
+    path: file.path,
+    mimetype: file.mimetype,
+    originalname: file.originalname,
+  })) || [];
+
+  try {
+    const jobOptions = {
+      attempts: 2,
+      backoff: { type: "exponential", delay: 5000 },
+      removeOnComplete: true,
+      removeOnFail: true,
+    };
+
+
+    // Add delay if scheduled
+    if (schedule) {
+      const delay = moment(schedule).diff(moment(), "milliseconds");
+      jobOptions.delay = delay;
+      scheduledAt = new Date(schedule);
+    }
+
+    await messageQueue.add(
+      "message-queue",
+      {
+        userId,
+        deviceId,
+        number,
+        message : htmlToWhatsapp(message),
+        captions,
+        attachments: tempAttachments || [],
+        isScheduled: !!schedule ,
+        scheduledAt  
+      },
+      jobOptions
+    );
+
+    console.log(`📤 Job added ${schedule ? `(scheduled for ${schedule})` : ''} ✅`);
+    return res.status(200).json({ 
+      status: true, 
+      message: schedule ? "Message scheduled" : "Message queued",
+      data: { schedule }
+    });
+  } catch (error) {
+    console.error("❌ Failed to add job to queue:", error.message);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to queue message",
+      error: error.message,
+    });
+  }
+};
+
+// ❌ Send BUlk Messages Outdated
+export const sendBulk1 = async (req, res) => {
   const { deviceId, numbers, message, timer } = req.body;
   const userId = req.user.userId;
 
-  if (!deviceId || !numbers || !Array.isArray(numbers) || numbers.length === 0 || !message) {
-    return res.status(400).json({ status: false, message: "Missing or invalid fields" });
+  if (
+    !deviceId ||
+    !numbers ||
+    !Array.isArray(numbers) ||
+    numbers.length === 0 ||
+    !message
+  ) {
+    return res
+      .status(400)
+      .json({ status: false, message: "Missing or invalid fields" });
   }
 
   // Default delay to 0ms if not provided
-  const delayMs = parseInt(timer*1000) || 1000;
+  const delayMs = parseInt(timer * 1000) || 1000;
 
   const clientId = `${userId}-${deviceId}`;
   const session = getSession(clientId);
 
   if (!session || !session.user) {
-    return res.status(400).json({ status: false, message: "Client not logged in" });
+    return res
+      .status(400)
+      .json({ status: false, message: "Client not logged in" });
   }
 
   const logs = [];
 
   for (const number of numbers) {
-    const jid = number.includes("@s.whatsapp.net") ? number : `${number}@s.whatsapp.net`;
+    const jid = number.includes("@s.whatsapp.net")
+      ? number
+      : `${number}@s.whatsapp.net`;
 
     try {
       const [result] = await session.sock.onWhatsApp(jid);
@@ -443,7 +555,6 @@ export const sendBulk = async (req, res) => {
       });
 
       logs.push({ number, status: "delivered", logId: successLog._id });
-
     } catch (err) {
       logger.error(`Bulk message failed for ${number}: ${err.message}`);
 
@@ -462,7 +573,7 @@ export const sendBulk = async (req, res) => {
 
     // Wait for delay between messages
     if (delayMs > 0) {
-      await new Promise(resolve => setTimeout(resolve, delayMs));
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
     }
   }
 
@@ -472,6 +583,191 @@ export const sendBulk = async (req, res) => {
     results: logs,
   });
 };
+
+// ✅ Send BUlk Messages
+export const sendBulk = async (req, res) => {
+  try {
+    const { deviceId, message, timer } = req.body;
+    let numbers = req.body.numbers || [];
+    let captions = req.body.captions || [];
+    const attachments = req.files; // array of files
+    const userId = req.user.userId;
+    
+    numbers = JSON.parse(numbers);
+    numbers = Array.isArray(numbers) ? numbers : [numbers];
+    captions = Array.isArray(captions) ? captions : [captions];
+
+    if (!deviceId || !numbers.length) {
+      if (attachments?.length) {
+        attachments.forEach((file) => fs.unlinkSync(file.path));
+      }
+      return res
+        .status(400)
+        .json({ status: false, message: "Missing required fields" });
+    }
+
+    const tempAttachments = attachments?.length > 0 && attachments.map((file) => ({
+      path: file.path,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+    }));
+
+    await messageQueue.add(
+      "message-queue",
+      {
+        userId,
+        deviceId,
+        numbers,
+        message : htmlToWhatsapp(message),
+        captions,
+        attachments: tempAttachments || [],
+        type: "bulk",
+        timer: timer || 1,
+      },
+      {
+        attempts: 2,
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+
+    return res.json({
+      status: true,
+      message: "Bulk message sent Succesfully",
+      data: null,
+    });
+
+  } catch (error) {
+    console.error("Failed to send bulk messages:", error);
+    
+    // Cleanup any uploaded files if there was an error
+    if (req.files?.length) {
+      req.files.forEach((file) => {
+        if (fs.existsSync(file.path)) {
+          fs.unlinkSync(file.path);
+        }
+      });
+    }
+
+    return res.status(500).json({
+      status: false,
+      message: "Failed to send bulk messages",
+      error: error.message
+    });
+  }
+};
+
+// ✅ Send Bulk Message Schedule
+export const sendBulkSchedule = async (req, res) => {
+  const { deviceId, message, timer, schedule } = req.body;
+  let numbers = req.body.numbers || [];
+  let captions = req.body.captions || [];
+  const attachments = req.files;
+  const userId = req.user.userId;
+
+  // Validate inputs
+  if (!deviceId || !numbers.length) {
+    if (attachments?.length) {
+      attachments.forEach((file) => fs.unlinkSync(file.path));
+    }
+    return res.status(400).json({
+      status: false,
+      message: "Device ID and numbers are required"
+    });
+  }
+
+  // Process arrays
+  numbers = Array.isArray(numbers) ? numbers : [numbers];
+  captions = Array.isArray(captions) ? captions : [captions];
+
+  // Validate schedule if provided
+  let delay = 0;
+  let scheduledAt = null;
+  
+  if (schedule) {
+    if (!moment(schedule, moment.ISO_8601, true).isValid()) {
+      return res.status(400).json({
+        status: false,
+        message: "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')"
+      });
+    }
+
+    if (moment(schedule).isBefore(moment())) {
+      return res.status(400).json({
+        status: false,
+        message: "Schedule time must be in the future"
+      });
+    }
+
+    delay = moment(schedule).diff(moment(), 'milliseconds');
+    scheduledAt = new Date(schedule);
+  }
+
+  // Prepare attachments
+  const tempAttachments = (attachments || []).map((file) => ({
+    path: file.path,
+    mimetype: file.mimetype,
+    originalname: file.originalname,
+  }));
+
+  // Job options
+  const jobOptions = {
+    attempts: 2,
+    backoff: { type: "exponential", delay: 5000 },
+    removeOnComplete: true,
+    removeOnFail: true,
+  };
+
+  // Add delay if scheduled
+  if (schedule) {
+    jobOptions.delay = delay;
+  }
+
+  try {
+    await messageQueue.add(
+      "message-queue",
+      {
+        userId,
+        deviceId,
+        numbers,
+        message : htmlToWhatsapp(message),
+        captions,
+        attachments: tempAttachments || [],
+        type: "bulk",
+        timer: timer || 1,
+        isScheduled: !!schedule,
+        scheduledAt  
+      },
+      jobOptions
+    );
+
+    return res.json({
+      status: true,
+      message: schedule 
+        ? `Bulk message scheduled for ${schedule}` 
+        : "Bulk message queued",
+      data: {
+        schedule: schedule || null,
+        count: numbers.length
+      }
+    });
+  } catch (error) {
+    console.error("❌ Failed to add bulk job:", error);
+    
+    // Cleanup attachments on queue error
+    tempAttachments.forEach(file => {
+      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+    });
+
+    return res.status(500).json({
+      status: false,
+      message: "Failed to queue bulk message",
+      error: error.message
+    });
+  }
+};
+
 
 // ✅ Logout & delete session
 export const logout = async (req, res) => {
@@ -504,7 +800,6 @@ export const listUserSessions = async (req, res) => {
   res.json({ success: true, data: sessions, message: "Sessions listed" });
 };
 
-
 //📜 Whatsapp api's endpoints started
 
 // ✅ Send Message API
@@ -514,21 +809,29 @@ export const sendMessageApi = async (req, res) => {
     const userId = req?.userId;
     const deviceId = req?.deviceId;
 
-    if (!userId) return res.status(401).json({ status: false, message: "Invalid user" });
+    if (!userId)
+      return res.status(401).json({ status: false, message: "Invalid user" });
     if (!apikey || !numberRaw || !rawMessage || !deviceId) {
-      return res.status(400).json({ status: false, message: "Missing required fields" });
+      return res
+        .status(400)
+        .json({ status: false, message: "Missing required fields" });
     }
 
-    const number = decodeURIComponent(numberRaw);
-    const message = decodeURIComponent(rawMessage);
+    const number = (numberRaw);
+    const message = (rawMessage);
+
     const clientId = `${userId}-${deviceId}`;
 
     const session = getSession(clientId);
     if (!session || !session.user) {
-      return res.status(400).json({ status: false, message: "Client not logged in" });
+      return res
+        .status(400)
+        .json({ status: false, message: "Client not logged in" });
     }
 
-    const jid = number.includes("@s.whatsapp.net") ? number : `${number}@s.whatsapp.net`;
+    const jid = number.includes("@s.whatsapp.net")
+      ? number
+      : `${number}@s.whatsapp.net`;
 
     const [result] = await session.sock.onWhatsApp(jid);
     const logData = {
@@ -732,8 +1035,7 @@ export const sendMessageApiOld = async (req, res) => {
       return res.json({ status: false, message: "Recipient not found" });
     }
 
-
-    await session.sock.sendMessage(jid, {text: message});
+    await session.sock.sendMessage(jid, { text: message });
 
     // Save success log
     const messageLog = new MessageLog({
@@ -767,4 +1069,3 @@ export const sendMessageApiOld = async (req, res) => {
     res.status(500).json({ status: false, message: "Failed to send message" });
   }
 };
-

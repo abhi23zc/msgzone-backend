@@ -30,6 +30,7 @@ export const restoreSessions = async () => {
                   try {
                     const clientId = `${userId}-${deviceId}`
                     await createClient(clientId);
+                    // console.log(sessions)
                   } catch (clientError) {
                     logger.error(`Error creating client for ${dir}:`, clientError);
                   }
