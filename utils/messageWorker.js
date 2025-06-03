@@ -15,6 +15,7 @@ const rateLimiters = new Map();
 
 const processMessageJob = async (job) => {
   const {
+    api,
     userId,
     deviceId,
     type = "single",
@@ -61,7 +62,7 @@ const processMessageJob = async (job) => {
 
         const [result] = await session.sock.onWhatsApp(jid);
         if (!result?.exists) {
-          await logMessage(userId, deviceId, currentNumber, message, "error", "Number does not exist", type, isScheduled, scheduledAt, []);
+          await logMessage(api , userId, deviceId, currentNumber, message, "error", "Number does not exist", type, isScheduled, scheduledAt, []);
           continue;
         }
 
@@ -87,14 +88,14 @@ const processMessageJob = async (job) => {
           });
         }
 
-        await logMessage(userId, deviceId, currentNumber, message, "delivered", "", type, isScheduled, scheduledAt, attachments);
+        await logMessage(api, userId, deviceId, currentNumber, message, "delivered", "", type, isScheduled, scheduledAt, attachments);
 
         if (type === "bulk") {
           await new Promise((res) => setTimeout(res, Number(timer) * 1000));
         }
       } catch (error) {
         logger.error(`[${jid}] Send failed: ${error.message}`);
-        await logMessage(userId, deviceId, currentNumber, message, "error", error.message, type, isScheduled, scheduledAt, attachments);
+        await logMessage(api, userId, deviceId, currentNumber, message, "error", error.message, type, isScheduled, scheduledAt, attachments);
       }
     }
   } catch (error) {
@@ -105,7 +106,7 @@ const processMessageJob = async (job) => {
   }
 };
 
-async function logMessage(userId, deviceId, to, message, status, errorMessage, type, isScheduled, scheduledAt, attachments = []) {
+async function logMessage(api, userId, deviceId, to, message, status, errorMessage, type, isScheduled, scheduledAt, attachments = []) {
   const mappedAttachments = attachments.map((file) => {
     const mime = file.mimetype || "";
     let fileType = "document";
@@ -122,6 +123,7 @@ async function logMessage(userId, deviceId, to, message, status, errorMessage, t
   });
 
   await MessageLog.create({
+    sendThrough: api ? "api" : "app",
     userId,
     sendFrom: deviceId,
     sendTo: to,

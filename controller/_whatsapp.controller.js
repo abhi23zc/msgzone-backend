@@ -660,114 +660,123 @@ export const sendBulk = async (req, res) => {
 
 // ✅ Send Bulk Message Schedule
 export const sendBulkSchedule = async (req, res) => {
-  const { deviceId, message, timer, schedule } = req.body;
-  let numbers = req.body.numbers || [];
-  let captions = req.body.captions || [];
-  const attachments = req.files;
-  const userId = req.user.userId;
-
-  // Validate inputs
-  if (!deviceId || !numbers.length) {
-    if (attachments?.length) {
-      attachments.forEach((file) => fs.unlinkSync(file.path));
-    }
-    return res.status(400).json({
-      status: false,
-      message: "Device ID and numbers are required"
-    });
-  }
-
-  // Process arrays
-  numbers = Array.isArray(numbers) ? numbers : [numbers];
-  captions = Array.isArray(captions) ? captions : [captions];
-
-  // Validate schedule if provided
-  let delay = 0;
-  let scheduledAt = null;
-  
-  if (schedule) {
-    if (!moment(schedule, moment.ISO_8601, true).isValid()) {
-      return res.status(400).json({
-        status: false,
-        message: "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')"
-      });
-    }
-
-    if (moment(schedule).isBefore(moment())) {
-      return res.status(400).json({
-        status: false,
-        message: "Schedule time must be in the future"
-      });
-    }
-
-    delay = moment(schedule).diff(moment(), 'milliseconds');
-    scheduledAt = new Date(schedule);
-  }
-
-  // Prepare attachments
-  const tempAttachments = (attachments || []).map((file) => ({
-    path: file.path,
-    mimetype: file.mimetype,
-    originalname: file.originalname,
-  }));
-
-  // Job options
-  const jobOptions = {
-    attempts: 2,
-    backoff: { type: "exponential", delay: 5000 },
-    removeOnComplete: true,
-    removeOnFail: true,
-  };
-
-  // Add delay if scheduled
-  if (schedule) {
-    jobOptions.delay = delay;
-  }
-
   try {
-    await messageQueue.add(
-      "message-queue",
-      {
-        userId,
-        deviceId,
-        numbers,
-        message : htmlToWhatsapp(message),
-        captions,
-        attachments: tempAttachments || [],
-        type: "bulk",
-        timer: timer || 1,
-        isScheduled: !!schedule,
-        scheduledAt  
-      },
-      jobOptions
-    );
+    const { deviceId, message, timer, schedule } = req.body;
+    let numbers = req.body.numbers || [];
+    let captions = req.body.captions || [];
+    const attachments = req.files;
+    const userId = req.user.userId;
 
-    return res.json({
-      status: true,
-      message: schedule 
-        ? `Bulk message scheduled for ${schedule}` 
-        : "Bulk message queued",
-      data: {
-        schedule: schedule || null,
-        count: numbers.length
+    // Validate inputs
+    if (!deviceId || !numbers.length) {
+      if (attachments?.length) {
+        attachments.forEach((file) => fs.unlinkSync(file.path));
       }
-    });
-  } catch (error) {
-    console.error("❌ Failed to add bulk job:", error);
-    
-    // Cleanup attachments on queue error
-    tempAttachments.forEach(file => {
-      if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-    });
+      return res.status(400).json({
+        status: false,
+        message: "Device ID and numbers are required"
+      });
+    }
 
+    // Process arrays
+    numbers = JSON.parse(numbers);
+    numbers = Array.isArray(numbers) ? numbers : [numbers];
+    captions = Array.isArray(captions) ? captions : [captions];
+
+    // Validate schedule if provided
+    let delay = 0;
+    let scheduledAt = null;
+    
+    if (schedule) {
+      if (!moment(schedule, moment.ISO_8601, true).isValid()) {
+        return res.status(400).json({
+          status: false,
+          message: "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')"
+        });
+      }
+
+      if (moment(schedule).isBefore(moment())) {
+        return res.status(400).json({
+          status: false,
+          message: "Schedule time must be in the future"
+        });
+      }
+
+      delay = moment(schedule).diff(moment(), 'milliseconds');
+      scheduledAt = new Date(schedule);
+    }
+
+    // Prepare attachments
+    const tempAttachments = (attachments || []).map((file) => ({
+      path: file.path,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+    }));
+
+    // Job options
+    const jobOptions = {
+      attempts: 2,
+      backoff: { type: "exponential", delay: 5000 },
+      removeOnComplete: true,
+      removeOnFail: true,
+    };
+
+    // Add delay if scheduled
+    if (schedule) {
+      jobOptions.delay = delay;
+    }
+
+    try {
+      await messageQueue.add(
+        "message-queue",
+        {
+          userId,
+          deviceId,
+          numbers,
+          message : htmlToWhatsapp(message),
+          captions,
+          attachments: tempAttachments || [],
+          type: "bulk",
+          timer: timer || 1,
+          isScheduled: !!schedule,
+          scheduledAt  
+        },
+        jobOptions
+      );
+
+      return res.json({
+        status: true,
+        message: schedule 
+          ? `Bulk message scheduled for ${schedule}` 
+          : "Bulk message queued",
+        data: {
+          schedule: schedule || null,
+          count: numbers.length
+        }
+      });
+    } catch (error) {
+      console.error("❌ Failed to add bulk job:", error);
+      
+      // Cleanup attachments on queue error
+      tempAttachments.forEach(file => {
+        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+      });
+
+      return res.status(500).json({
+        status: false,
+        message: "Failed to queue bulk message",
+        error: error.message
+      });
+    }
+  } catch (err) {
+    console.error("❌ Error in sendBulkSchedule:", err);
     return res.status(500).json({
-      status: false,
-      message: "Failed to queue bulk message",
-      error: error.message
+      status: false, 
+      message: "Internal server error",
+      error: err.message
     });
   }
 };
-
 
 // ✅ Logout & delete session
 export const logout = async (req, res) => {
@@ -820,52 +829,37 @@ export const sendMessageApi = async (req, res) => {
     const number = (numberRaw);
     const message = (rawMessage);
 
-    const clientId = `${userId}-${deviceId}`;
-
-    const session = getSession(clientId);
-    if (!session || !session.user) {
+    try {
+      await messageQueue.add(
+        "message-queue",
+        {
+          api:true,
+          userId,
+          deviceId,
+          number,
+          message : (message),
+          captions : [],
+          attachments:  [],
+        },
+        {
+          attempts: 2,
+          backoff: { type: "exponential", delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        }
+      );
+      console.log("📤 Job added to queue ✅");
       return res
-        .status(400)
-        .json({ status: false, message: "Client not logged in" });
-    }
-
-    const jid = number.includes("@s.whatsapp.net")
-      ? number
-      : `${number}@s.whatsapp.net`;
-
-    const [result] = await session.sock.onWhatsApp(jid);
-    const logData = {
-      userId,
-      sendFrom: deviceId,
-      sendTo: number,
-      text: message,
-      type: "single",
-      sendThrough: "api",
-    };
-
-    // Case: WhatsApp number does not exist
-    if (!result?.exists) {
-      logData.status = "error";
-      logData.errorMessage = "WhatsApp number does not exist";
-      await MessageLog.create(logData);
-
-      return res.json({
+        .status(200)
+        .json({ status: true, message: "Message Sent Succesfully", data: null });
+    } catch (error) {
+      console.error("❌ Failed to add job to queue:", error.message);
+      return res.status(500).json({
         status: false,
-        message: "WhatsApp number does not exist",
+        message: "Failed to queue message",
+        error: error.message,
       });
     }
-
-    // Try sending the message
-    await session.sock.sendMessage(jid, { text: message });
-
-    logData.status = "delivered";
-    logData.sentAt = new Date();
-    await MessageLog.create(logData);
-
-    return res.json({
-      status: true,
-      message: "Message sent successfully",
-    });
   } catch (err) {
     const { userId, deviceId } = req;
 

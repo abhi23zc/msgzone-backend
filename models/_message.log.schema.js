@@ -32,7 +32,7 @@ const messageLogSchema = new mongoose.Schema({
   errorMessage: { type: String }, // if failed
   isScheduled: { type: Boolean, default: false },
   scheduledAt: { type: Date }, // for scheduled messages
-  sentAt: { type: Date }, // actual sent time
+  sentAt: { type: Date },
 
   createdAt: { type: Date, default: Date.now },
 });
