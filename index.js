@@ -17,6 +17,7 @@ app.use(
       "http://localhost:3000",
       "https://msgzone.vercel.app",
       "https://whatsapp.webifyit.in",
+      "https://whatsapp.web.webifyit.in"
     ],
     credentials: true,
   })
@@ -39,10 +40,10 @@ app.get("/health", (req, res) => {
 });
 
 // ✅ Memory Usage
-setInterval(() => {
-  const mem = process.memoryUsage();
-  console.log(`[WORKER] 🧠 RSS: ${Math.round(mem.rss / 1024 / 1024)} MB`);
-}, 5000);
+// setInterval(() => {
+//   const mem = process.memoryUsage();
+//   console.log(`[WORKER] 🧠 RSS: ${Math.round(mem.rss / 1024 / 1024)} MB`);
+// }, 5000);
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
