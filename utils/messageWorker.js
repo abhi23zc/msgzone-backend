@@ -1,19 +1,24 @@
 import { Worker } from "bullmq";
 import fs from "fs";
 import { unlink } from "fs/promises";
-import { MessageLog } from "../models/_message.log.schema.js";
 import os from "os";
-import logger from "../utils/logger.js";
 import dotenv from "dotenv";
+import logger from "../utils/logger.js";
 import redisClient from "./redis.js";
-import { getSession, createClient } from "../controller/_whatsapp.controller.js";
+import { MessageLog } from "../models/_message.log.schema.js";
+import {
+  getSession,
+  createClient,
+} from "../controller/_whatsapp.controller.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
+import { messageQueue } from "./messageQueue.js";
 
 dotenv.config();
 
 const rateLimiters = new Map();
+const MAX_FILE_SIZE_MB = 10;
 
-const processMessageJob = async (job) => {
+async function processMessageJob(job) {
   const {
     api,
     userId,
@@ -33,21 +38,41 @@ const processMessageJob = async (job) => {
   const scheduledAt = isScheduled ? new Date(job.timestamp + job.delay) : null;
 
   try {
-    logger.info(`Processing ${isScheduled ? "scheduled " : ""}${type} job ${job.id} for ${clientId}`);
+    logger.info(
+      `Processing ${isScheduled ? "scheduled " : ""}${type} job ${
+        job.id
+      } for ${clientId}`
+    );
 
-    if (!session?.user) {
-      await createClient(clientId);
-      session = getSession(clientId);
-      if (!session?.user) throw new Error("Client unavailable after reconnect");
+    if (!session?.sock?.user) {
+      logger.warn(
+        `[${clientId}] Session not authenticated. Enqueueing reconnect job`
+      );
+
+      await messageQueue.add(
+        "reconnect",
+        { clientId },
+        {
+          delay: 5000,
+          attempts: 3,
+          backoff: { type: "exponential", delay: 5000 },
+          removeOnComplete: true,
+          removeOnFail: true,
+        }
+      );
+
+      throw new Error("Not authenticated — Enqueued reconnect");
+    }
+    const limiterKey = `${userId}-${deviceId}`;
+
+    if (!rateLimiters.has(limiterKey)) {
+      rateLimiters.set(
+        limiterKey,
+        new RateLimiterMemory({ points: 1, duration: 2 })
+      );
     }
 
-    if (!rateLimiters.has(deviceId)) {
-      rateLimiters.set(deviceId, new RateLimiterMemory({
-        points: 15,
-        duration: 1,
-      }));
-    }
-    const rateLimiter = rateLimiters.get(deviceId);
+    const rateLimiter = rateLimiters.get(limiterKey);
 
     const resolvedNumbers = type === "bulk" ? numbers : [number];
 
@@ -58,44 +83,154 @@ const processMessageJob = async (job) => {
         : `${currentNumber}@s.whatsapp.net`;
 
       try {
-        await rateLimiter.consume(jid);
+        // ✅ Retry until rate limit allows
+        let consumed = false;
+        while (!consumed) {
+          try {
+            await rateLimiter.consume(limiterKey);
 
-        const [result] = await session.sock.onWhatsApp(jid);
-        if (!result?.exists) {
-          await logMessage(api , userId, deviceId, currentNumber, message, "error", "Number does not exist", type, isScheduled, scheduledAt, []);
-          continue;
+            consumed = true;
+          } catch (rateError) {
+            const waitTime = rateError.msBeforeNext || 2000;
+            logger.warn(
+              `[RateLimit] Waiting ${waitTime}ms before retrying for ${deviceId}`
+            );
+            await new Promise((res) => setTimeout(res, waitTime));
+          }
+        }
+
+        try {
+          const [result] = await session.sock.onWhatsApp(jid);
+          if (!result?.exists) {
+            await logMessage(
+              api,
+              userId,
+              deviceId,
+              currentNumber,
+              message,
+              "error",
+              "Number does not exist",
+              type,
+              isScheduled,
+              scheduledAt,
+              []
+            );
+            continue;
+          }
+        } catch (err) {
+          logger.warn(`[${clientId}] Socket dropped mid-job`);
+          await messageQueue.add("reconnect", { clientId });
+          throw new Error("Reconnecting due to socket drop");
         }
 
         if (message?.trim()) {
           await session.sock.sendMessage(jid, { text: message });
         }
 
+        // for (let i = 0; i < attachments.length; i++) {
+        //   const file = attachments[i];
+        //   const caption = Array.isArray(captions) ? captions[i] || "" : "";
+        //   const isImage = file.mimetype.startsWith("image/");
+        //   const fileSizeInMB = fs.statSync(file.path).size / (1024 * 1024);
+
+        //   if (fileSizeInMB > MAX_FILE_SIZE_MB) {
+        //     throw new Error(`Attachment exceeds ${MAX_FILE_SIZE_MB}MB`);
+        //   }
+
+        //   const stream = fs.createReadStream(file.path);
+
+        //   await pipeline(
+        //     stream,
+        //     session.sock.sendMessage(jid, {
+        //       [isImage ? "image" : "document"]: { stream },
+        //       caption,
+        //       mimetype: file.mimetype,
+        //       fileName: file.originalname,
+        //     })
+        //   );
+
+        //   stream.destroy();
+        // }
+
         for (let i = 0; i < attachments.length; i++) {
           const file = attachments[i];
-          const caption = Array.isArray(captions) ? captions[i] || "" : "";
-          const isImage = file.mimetype.startsWith("image/");
+          if (!file || !file.path || !file.mimetype || !file.originalname) {
+            logger.warn(
+              `[${clientId}] Skipping invalid attachment: ${JSON.stringify(
+                file
+              )}`
+            );
+            continue;
+          }
+
+          const fileSizeInMB = fs.statSync(file.path).size / (1024 * 1024);
+          if (fileSizeInMB > MAX_FILE_SIZE_MB) {
+            logger.warn(
+              `[${clientId}] Skipping large file: ${file.originalname}`
+            );
+            continue;
+          }
 
           const stream = fs.createReadStream(file.path);
+          const caption = Array.isArray(captions) ? captions[i] || "" : "";
+          const isImage = file.mimetype.startsWith("image/");
+          const isVideo = file.mimetype.startsWith("video/");
+          const isAudio = file.mimetype.startsWith("audio/");
 
-          await session.sock.sendMessage(jid, {
-            [isImage ? "image" : "document"]: {
-              url: file.path,
-              stream: stream,
-            },
-            caption,
-            mimetype: file.mimetype,
-            fileName: file.originalname,
-          });
+          let typeKey = "document";
+          if (isImage) typeKey = "image";
+          else if (isVideo) typeKey = "video";
+          else if (isAudio) typeKey = "audio";
+
+          try {
+            // Read file into buffer instead of passing stream directly
+            const buffer = fs.readFileSync(file.path);
+            
+            await session.sock.sendMessage(jid, {
+              [typeKey]: buffer,
+              mimetype: file.mimetype,
+              fileName: file.originalname,
+              caption: caption,
+            });
+          } catch (err) {
+            logger.error(
+              `[${clientId}] Failed to send attachment: ${err.message}`
+            );
+          }
         }
 
-        await logMessage(api, userId, deviceId, currentNumber, message, "delivered", "", type, isScheduled, scheduledAt, attachments);
+        await logMessage(
+          api,
+          userId,
+          deviceId,
+          currentNumber,
+          message,
+          "delivered",
+          "",
+          type,
+          isScheduled,
+          scheduledAt,
+          attachments
+        );
 
         if (type === "bulk") {
           await new Promise((res) => setTimeout(res, Number(timer) * 1000));
         }
       } catch (error) {
         logger.error(`[${jid}] Send failed: ${error.message}`);
-        await logMessage(api, userId, deviceId, currentNumber, message, "error", error.message, type, isScheduled, scheduledAt, attachments);
+        await logMessage(
+          api,
+          userId,
+          deviceId,
+          currentNumber,
+          message,
+          "error",
+          error.message,
+          type,
+          isScheduled,
+          scheduledAt,
+          attachments
+        );
       }
     }
   } catch (error) {
@@ -104,9 +239,21 @@ const processMessageJob = async (job) => {
   } finally {
     await cleanupAttachments(attachments);
   }
-};
+}
 
-async function logMessage(api, userId, deviceId, to, message, status, errorMessage, type, isScheduled, scheduledAt, attachments = []) {
+async function logMessage(
+  api,
+  userId,
+  deviceId,
+  to,
+  message,
+  status,
+  errorMessage,
+  type,
+  isScheduled,
+  scheduledAt,
+  attachments = []
+) {
   const mappedAttachments = attachments.map((file) => {
     const mime = file.mimetype || "";
     let fileType = "document";
@@ -117,7 +264,7 @@ async function logMessage(api, userId, deviceId, to, message, status, errorMessa
 
     return {
       type: fileType,
-      url: file.path, // change to public URL if needed
+      url: file.path,
       name: file.originalname,
     };
   });
@@ -137,21 +284,64 @@ async function logMessage(api, userId, deviceId, to, message, status, errorMessa
     sentAt: new Date(),
   });
 }
-
 async function cleanupAttachments(attachments) {
   for (const file of attachments) {
     try {
-      if (fs.existsSync(file.path)) {
+      if (file?.path && fs.existsSync(file.path)) {
         await unlink(file.path);
         logger.info(`Deleted attachment: ${file.path}`);
       }
     } catch (err) {
-      logger.error(`Failed to delete ${file.path}: ${err.message}`);
+      logger.error(`Failed to delete ${file?.path}: ${err.message}`);
     }
   }
 }
 
-export const worker = new Worker("message-queue", processMessageJob, {
-  connection: redisClient,
-  concurrency: Math.max(os.cpus().length * 2, 4),
+export const worker = new Worker(
+  "message-queue",
+  async (job) => {
+    const { clientId } = job.data;
+
+    if (job.name === "reconnect" && clientId) {
+      logger.info(`[Worker] Reconnecting session for ${clientId}`);
+      try {
+        const existingSession = getSession(clientId);
+        if (existingSession?.sock?.user) {
+          logger.info(
+            `[Worker] Session ${clientId} already connected, skipping reconnect`
+          );
+          return;
+        }
+
+        await createClient(clientId);
+        logger.info(`[Worker] Successfully reconnected ${clientId}`);
+      } catch (error) {
+        logger.error(
+          `[Worker] Failed to reconnect ${clientId}: ${error.message}`
+        );
+        throw error;
+      }
+      return;
+    }
+
+    await processMessageJob(job);
+  },
+  {
+    connection: redisClient,
+    concurrency: Math.max(os.cpus().length * 2, 4),
+    limiter: {
+      max: 50,
+      duration: 1000,
+    },
+    stalledInterval: 30000,
+    lockDuration: 60000,
+  }
+);
+
+worker.on("error", (err) => {
+  logger.error(`Worker error: ${err.message}`);
+});
+
+worker.on("stalled", (jobId) => {
+  logger.warn(`Job ${jobId} stalled`);
 });

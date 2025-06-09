@@ -12,12 +12,12 @@ const DeviceSchema = new mongoose.Schema(
     // },
     status: {
       type: String,
-      enum: ['connected', 'disconnected', 'auth_failure'],
-      default: 'disconnected',
+      enum: ["connected", "disconnected", "auth_failure"],
+      default: "disconnected",
     },
     lastConnected: {
       type: Date,
-      default: Date.now
+      default: Date.now,
     },
   },
   { _id: false } // Prevent auto-generating _id for each device
@@ -66,6 +66,15 @@ const UserSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    isVerified: {
+      type: Boolean,
+      default: false,
+    },
+    otp: {
+      code: { type: String },
+      expiresAt: { type: Date },
+    },
+
     profilePhoto: {
       type: String,
     },
@@ -78,12 +87,12 @@ const UserSchema = new mongoose.Schema(
       type: [DeviceSchema],
       default: [],
     },
-    enableCode:String,
+    enableCode: String,
     createdAt: {
       type: Date,
       default: Date.now,
     },
-    token:String,
+    token: String,
     lastLogin: {
       type: Date,
     },

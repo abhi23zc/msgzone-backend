@@ -33,147 +33,267 @@ worker.on("failed", (job, err) => {
 });
 
 // ✅ Create client
+// export async function createClient(clientId) {
+//   const memBefore = process.memoryUsage().rss;
+//   const [userId, deviceId] = clientId.split('-');
+//   const sessionFolder = path.join(__dirname, '..', 'sessions', clientId);
+
+//   if (!fs.existsSync(sessionFolder)) {
+//     fs.mkdirSync(sessionFolder, { recursive: true });
+//   }
+
+//   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+//   const { version } = await fetchLatestBaileysVersion();
+
+//   // Check if we already have a session before creating a new one
+//   if (sessions[clientId] && sessions[clientId].sock) {
+//     logger.info(`[${clientId}] Session already exists, reusing`);
+//     return sessions[clientId];
+//   }
+
+//   const sock = makeWASocket({
+//     version,
+//     auth: state,
+//     printQRInTerminal: false,
+//     getMessage: async () => undefined,
+//     generateHighQualityLinkPreview: false,
+//     shouldSyncHistoryMessage: false,
+//     syncFullHistory: false,
+//     markOnlineOnConnect: false,
+//     msgRetryCounterMap: {},
+   
+//   });
+
+//   sessions[clientId] = {
+//     sock,
+//     qr: null,
+//     user: null,
+//     qrGeneratedAt: null,
+//     qrTimeout: null,
+//   };
+
+//   const user = await User.findById(userId);
+
+//   sock.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
+//     try {
+//       if (qr && connection !== 'open' && !sessions[clientId].qr) {
+//         const qrImage = await qrcode.toDataURL(qr);
+//         sessions[clientId].qr = qrImage;
+//         sessions[clientId].qrGeneratedAt = Date.now();
+//         console.log(`[${clientId}] QR Generated`);
+
+//         sessions[clientId].qrTimeout = setTimeout(() => {
+//           if (!sessions[clientId].user) {
+//             console.log(`[${clientId}] QR not scanned. Destroying session.`);
+//             destroySession(clientId);
+//           }
+//         }, 60 * 1000);
+//       }
+
+//       if (connection === 'open') {
+//         sessions[clientId].user = sock.user;
+//         clearTimeout(sessions[clientId].qrTimeout);
+//         sessions[clientId].qrTimeout = null;
+
+//         const device = user.devices.find((d) => d.deviceId === deviceId);
+//         if (device) device.status = 'connected';
+//         else user.devices.push({ deviceId, status: 'connected' });
+
+//         await user.save();
+//         console.log(`[${clientId}] Logged in`);
+//       }
+
+//       if (connection === 'close') {
+//         const statusCode = lastDisconnect?.error?.output?.statusCode;
+//         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+        
+//         // Don't immediately delete the session
+//         // Keep track of reconnection attempts
+//         if (!sessions[clientId].reconnectAttempts) {
+//           sessions[clientId].reconnectAttempts = 0;
+//         }
+        
+//         if (shouldReconnect && sessions[clientId].reconnectAttempts < 10) {
+//           // Exponential backoff for reconnection
+//           const attempts = ++sessions[clientId].reconnectAttempts;
+//           const delay = Math.min(Math.pow(2, attempts) * 1000, 300000); // Max 5 minutes
+          
+//           logger.info(`[${clientId}] Connection closed. Reconnect attempt ${attempts} in ${delay/1000}s`);
+          
+//           await messageQueue.add('reconnect', { clientId }, { 
+//             delay,
+//             attempts: 3,
+//             backoff: { type: "exponential", delay: 5000 }
+//           });
+//         } else {
+//           // Only destroy session after max attempts or if logged out
+//           logger.warn(`[${clientId}] Giving up reconnection after ${sessions[clientId].reconnectAttempts} attempts`);
+          
+//           // Clean up resources
+//           fs.rm(sessionFolder, { recursive: true, force: true }, (err) => {
+//             if (err) console.error(`Failed to remove session folder: ${err.message}`);
+//           });
+
+//           const device = user.devices.find((d) => d.deviceId === deviceId);
+//           if (device) device.status = 'disconnected';
+//           else user.devices.push({ deviceId, status: 'disconnected' });
+
+//           await user.save();
+          
+//           // Now we can safely delete the session
+//           delete sessions[clientId];
+//         }
+//       }
+//     } catch (err) {
+//       console.error(`Connection error: ${err.message}`);
+//     }
+//   });
+
+//   sock.ev.on('creds.update', async () => {
+//     try {
+//       await saveCreds();
+      
+//     } catch (err) {
+//       console.error(`Cred saving error: ${err.message}`);
+//     }
+//   });
+
+//   const memAfter = process.memoryUsage().rss;
+//   console.log(`[${clientId}] Memory usage: ${(memAfter - memBefore) / 1024 / 1024} MB`);
+// }
+
 export async function createClient(clientId) {
   const memBefore = process.memoryUsage().rss;
-  try {
-    const [userId, deviceId] = clientId?.split("-");
-    const sessionFolder = path.join(__dirname, "..", "sessions", clientId);
+  const [userId, deviceId] = clientId.split("-");
+  const sessionFolder = path.join(__dirname, "..", "sessions", clientId);
 
-    logger.info(`Creating session for: ${clientId}`);
-    const user = await User.findById(userId);
-    // Ensure session directory exists
-    if (!fs.existsSync(sessionFolder)) {
-      fs.mkdirSync(sessionFolder, { recursive: true });
-    }
-
-    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-    const { version } = await fetchLatestBaileysVersion();
-
-    const sock = makeWASocket({
-      version,
-      auth: state,
-      printQRInTerminal: false,
-      getMessage: async () => undefined,
-      generateHighQualityLinkPreview: false,
-      shouldSyncHistoryMessage: false,
-      syncFullHistory: false,
-      markOnlineOnConnect: false,
-      msgRetryCounterMap: {},
-    });
-
-    // Setup session
-    sessions[clientId] = {
-      sock,
-      qr: null,
-      qrGeneratedAt: null,
-      user: null,
-      qrTimeout: null,
-    };
-
-    sock.ev.on(
-      "connection.update",
-      async ({ connection, qr, lastDisconnect }) => {
-        try {
-          if (qr && connection !== "open" && !sessions[clientId].qr) {
-            const qrImage = await qrcode.toDataURL(qr);
-            sessions[clientId].qr = qrImage;
-            sessions[clientId].qrGeneratedAt = Date.now();
-            logger.info(`[${clientId}] QR generated`);
-
-            // ⏲️ Set a timeout to destroy unscanned session
-            sessions[clientId].qrTimeout = setTimeout(() => {
-              if (!sessions[clientId]?.user) {
-                logger.warn(
-                  `[${clientId}] QR not scanned in time. Destroying session.`
-                );
-                destroySession(clientId);
-              }
-            }, 30 * 1000); // Timeout
-          }
-
-          if (connection === "open") {
-            sessions[clientId].user = sock.user;
-            sessions[clientId].qr = null;
-            sessions[clientId].qrGeneratedAt = null;
-
-            // ✅ Clear QR timeout
-            if (sessions[clientId].qrTimeout) {
-              clearTimeout(sessions[clientId].qrTimeout);
-              sessions[clientId].qrTimeout = null;
-            }
-            const device = user.devices.find((d) => d.deviceId === deviceId);
-            if (device) {
-              device.status = "connected";
-            } else {
-              user.devices.push({ deviceId, status: "connected" });
-            }
-            await User.findByIdAndUpdate(userId, { devices: user.devices });
-
-            logger.info(`[${clientId}] Logged in as ${sock.user.id}`);
-          }
-
-          if (connection === "close") {
-            const shouldReconnect =
-              lastDisconnect?.error?.output?.statusCode !==
-              DisconnectReason.loggedOut;
-            logger.warn(
-              `[${clientId}] Connection closed. Reconnect: ${shouldReconnect}`
-            );
-            delete sessions[clientId];
-
-            if (shouldReconnect) {
-              const credFile = path.join(sessionFolder, "creds.json");
-              if (fs.existsSync(credFile)) {
-                logger.info(`[${clientId}] Attempting reconnection...`);
-                await createClient(clientId);
-              }
-            } else {
-              setTimeout(() => {
-                fs.rm(
-                  sessionFolder,
-                  { recursive: true, force: true },
-                  (err) => {
-                    if (err)
-                      logger.error(`Failed to remove session: ${err.message}`);
-                    else
-                      logger.info(`Session folder removed: ${sessionFolder}`);
-                  }
-                );
-              }, 1000);
-
-              const device = user.devices.find((d) => d.deviceId === deviceId);
-              if (device) {
-                device.status = "disconnected";
-              } else {
-                user.devices.push({ deviceId, status: "disconnected" });
-              }
-              await User.findByIdAndUpdate(userId, { devices: user.devices });
-            }
-          }
-        } catch (err) {
-          logger.error(`Connection update error: ${err.message}`);
-        }
-      }
-    );
-
-    sock.ev.on("creds.update", async () => {
-      try {
-        if (!fs.existsSync(sessionFolder)) {
-          fs.mkdirSync(sessionFolder, { recursive: true });
-        }
-        await saveCreds();
-      } catch (err) {
-        logger.error(`Failed to save credentials: ${err.message}`);
-      }
-    });
-    const memAfter = process.memoryUsage().rss;
-    logger.info(
-      `[${clientId}] Memory used: ${(memAfter - memBefore) / 1024 / 1024} MB`
-    );
-  } catch (err) {
-    logger.error(`Client creation failed: ${err.message}`);
-    throw err;
+  if (!fs.existsSync(sessionFolder)) {
+    fs.mkdirSync(sessionFolder, { recursive: true });
   }
+
+  const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+  const { version } = await fetchLatestBaileysVersion();
+
+  // If session exists and connected, skip
+  if (sessions[clientId]?.sock?.user) {
+    logger.info(`[${clientId}] Existing session found, skipping re-creation`);
+    return sessions[clientId];
+  }
+
+  const sock = makeWASocket({
+    version,
+    auth: state,
+    printQRInTerminal: false,
+    getMessage: async () => undefined,
+    generateHighQualityLinkPreview: false,
+    shouldSyncHistoryMessage: false,
+    syncFullHistory: false,
+    markOnlineOnConnect: false,
+    msgRetryCounterMap: {},
+    connectTimeoutMs: 60000, 
+    keepAliveIntervalMs: 25000, 
+    retryRequestDelayMs: 1000, 
+    defaultQueryTimeoutMs: 60000, 
+    emitOwnEvents: false, 
+  });
+
+  sessions[clientId] = {
+    sock,
+    qr: null,
+    user: null,
+    qrGeneratedAt: null,
+    qrTimeout: null,
+    reconnectAttempts: 0,
+  };
+
+  const user = await User.findById(userId);
+
+  sock.ev.on("connection.update", async ({ connection, qr, lastDisconnect }) => {
+    try {
+      if (qr && connection !== "open") {
+        const qrImage = await qrcode.toDataURL(qr);
+        sessions[clientId].qr = qrImage;
+        sessions[clientId].qrGeneratedAt = Date.now();
+        logger.info(`[${clientId}] QR generated`);
+
+        if (!sessions[clientId].qrTimeout) {
+          sessions[clientId].qrTimeout = setTimeout(() => {
+            if (!sessions[clientId].user) {
+              logger.warn(`[${clientId}] QR not scanned, destroying session`);
+              destroySession(clientId);
+            }
+          }, 30 * 1000);
+        }
+      }
+
+      // 💡 Set user immediately when available
+      if (!sessions[clientId].user && sock.user) {
+        logger.info(`[${clientId}] ✅ Detected active session during connection update`);
+        sessions[clientId].user = sock.user;
+        clearTimeout(sessions[clientId].qrTimeout);
+        sessions[clientId].qrTimeout = null;
+
+        const device = user.devices.find((d) => d.deviceId === deviceId);
+        if (device) device.status = "connected";
+        else user.devices.push({ deviceId, status: "connected" });
+
+        await user.save();
+        await saveCreds();
+      }
+
+      if (connection === "open") {
+        logger.info(`✅[${clientId}] Connection opened`);
+      }
+
+      if (connection === "close") {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
+
+        if (shouldReconnect && sessions[clientId].reconnectAttempts < 10) {
+          const attempts = ++sessions[clientId].reconnectAttempts;
+          const delay = Math.min(Math.pow(2, attempts) * 1000, 300000); // Max 5 min
+
+          logger.info(`[${clientId}] Connection closed. Retry ${attempts} in ${delay / 1000}s`);
+
+          await messageQueue.add(
+            "reconnect",
+            { clientId },
+            {
+              delay,
+              attempts: 3,
+              backoff: { type: "exponential", delay: 5000 },
+            }
+          );
+        } else {
+          logger.warn(`[${clientId}] Max reconnect attempts reached or logged out`);
+
+          fs.rm(sessionFolder, { recursive: true, force: true }, (err) => {
+            if (err) console.error(`Failed to remove session folder: ${err.message}`);
+          });
+
+          const device = user.devices.find((d) => d.deviceId === deviceId);
+          if (device) device.status = "disconnected";
+          else user.devices.push({ deviceId, status: "disconnected" });
+
+          await user.save();
+          delete sessions[clientId];
+        }
+      }
+    } catch (err) {
+      console.error(`[${clientId}] connection.update error: ${err.message}`);
+    }
+  });
+
+  sock.ev.on("creds.update", async () => {
+    try {
+      await saveCreds();
+    } catch (err) {
+      console.error(`[${clientId}] Creds update failed: ${err.message}`);
+    }
+  });
+
+  const memAfter = process.memoryUsage().rss;
+  logger.info(`[${clientId}] Memory used: ${(memAfter - memBefore) / 1024 / 1024} MB`);
 }
 
 // ✅ Get session
@@ -350,7 +470,7 @@ export const sendSingle = async (req, res) => {
   let captions = req.body.captions || [];
   const attachments = req.files;
   const userId = req.user.userId;
-  captions = [...captions]; // convert to array
+  captions = [...captions]; 
   if (!deviceId || !number) {
     if (attachments?.length)
       attachments.forEach((file) => fs.unlinkSync(file.path));
@@ -377,7 +497,7 @@ export const sendSingle = async (req, res) => {
         attachments: tempAttachments || [],
       },
       {
-        attempts: 2,
+        attempts: 3,
         backoff: { type: "exponential", delay: 5000 },
         removeOnComplete: true,
         removeOnFail: true,
@@ -442,7 +562,7 @@ export const sendSingleSchedule = async (req, res) => {
 
   try {
     const jobOptions = {
-      attempts: 2,
+      attempts: 3,
       backoff: { type: "exponential", delay: 5000 },
       removeOnComplete: true,
       removeOnFail: true,
@@ -625,7 +745,7 @@ export const sendBulk = async (req, res) => {
         timer: timer || 1,
       },
       {
-        attempts: 2,
+        attempts: 3,
         backoff: { type: "exponential", delay: 5000 },
         removeOnComplete: true,
         removeOnFail: true,
@@ -715,7 +835,7 @@ export const sendBulkSchedule = async (req, res) => {
 
     // Job options
     const jobOptions = {
-      attempts: 2,
+      attempts: 3,
       backoff: { type: "exponential", delay: 5000 },
       removeOnComplete: true,
       removeOnFail: true,
@@ -842,7 +962,7 @@ export const sendMessageApi = async (req, res) => {
           attachments:  [],
         },
         {
-          attempts: 2,
+          attempts: 3,
           backoff: { type: "exponential", delay: 5000 },
           removeOnComplete: true,
           removeOnFail: true,
@@ -1063,3 +1183,31 @@ export const sendMessageApiOld = async (req, res) => {
     res.status(500).json({ status: false, message: "Failed to send message" });
   }
 };
+
+//✅  Monitor sessions
+export function startSessionMonitoring() {
+  setInterval(() => {
+    const sessionCount = Object.keys(sessions).length;
+    logger.info(`Active sessions: ${sessionCount}`);
+    
+    // Check each session's health
+    for (const clientId in sessions) {
+      const session = sessions[clientId];
+      if (!session || !session.sock) continue;
+      
+      // Check if the socket is still alive
+      const isConnected = session.sock.user != null;
+      logger.debug(`[${clientId}] Connection status: ${isConnected ? 'connected' : 'disconnected'}`);
+      
+      // If disconnected but not yet recognized, trigger reconnection
+      if (!isConnected && !session.reconnectAttempts) {
+        logger.warn(`[${clientId}] Detected zombie session, triggering reconnect`);
+        messageQueue.add('reconnect', { clientId }, { delay: 1000 });
+      }
+    }
+    
+    // Log memory usage
+    const memUsage = process.memoryUsage();
+    logger.info(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)} MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}/${Math.round(memUsage.heapTotal / 1024 / 1024)} MB`);
+  }, 60000); // Check every minute
+}

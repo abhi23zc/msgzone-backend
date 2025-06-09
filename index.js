@@ -6,6 +6,7 @@ import dashboardRouter from "./routes/dashboard.route.js";
 import connectDB from "./config/database.js";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import 'dotenv/config';
 import { restoreSessions } from "./sessionStart.js";
 
 const PORT = process.env.PORT || 8080;
