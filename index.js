@@ -18,7 +18,8 @@ app.use(
       "http://localhost:3000",
       "https://msgzone.vercel.app",
       "https://whatsapp.webifyit.in",
-      "https://whatsapp.web.webifyit.in"
+      "https://whatsapp.web.webifyit.in",
+      "https://dev.whatsapp.web.webifyit.in"
     ],
     credentials: true,
   })
