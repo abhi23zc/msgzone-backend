@@ -1,13 +1,15 @@
 module.exports = {
-    apps: [
-      {
-        name: "msgzone",
-        script: "index.js",
-      },
-      {
-        name: "email-worker",
-        script: "utils/EmailWorker.js",
-      },
-    ],
-  };
-  
+  apps: [
+    {
+      name: "msgzone-dev",
+      script: "index.js",
+    },
+    {
+      name: "email-dev",
+      script: "utils/EmailWorker.js",
+    },
+  ],
+};
+
+
+
