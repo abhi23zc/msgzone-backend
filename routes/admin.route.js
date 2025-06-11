@@ -23,6 +23,11 @@ router.get(
 router.get("/user-growth", isAuthenticated, isAdmin, getUserGrowthStats);
 router.get("/activity", isAuthenticated, isAdmin, getLiveActivity);
 
+// ✅Check Admin
+
+router.get('/isAdmin', isAuthenticated , isAdmin, (req, res)=>{
+  return res.json({status:true, message:"Admin is authenticated", data:null})
+})
 
 // ✅ User Routes
 router.get("/users/stats", isAuthenticated, isAdmin, getUserStats);
