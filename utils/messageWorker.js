@@ -11,7 +11,6 @@ import {
   createClient,
 } from "../controller/_whatsapp.controller.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
-import { messageQueue } from "./messageQueue.js";
 
 dotenv.config();
 
@@ -38,23 +37,17 @@ async function processMessageJob(job) {
 
   let session = getSession(clientId);
 
-  // Reconnect logic before starting
+  // If session doesn't exist or is unauthenticated, try reconnecting directly
   if (!session?.sock?.user) {
-    logger.warn(`[${clientId}] Session not found or not authenticated`);
-
-    await messageQueue.add(
-      "reconnect",
-      { clientId },
-      {
-        delay: 3000,
-        attempts: 3,
-        backoff: { type: "exponential", delay: 3000 },
-        removeOnComplete: true,
-        removeOnFail: true,
-      }
-    );
-
-    throw new Error(`[${clientId}] Session not authenticated - reconnect enqueued`);
+    logger.warn(`[${clientId}] Session not found or not authenticated. Attempting direct reconnect...`);
+    try {
+      await createClient(clientId);
+      session = getSession(clientId);
+      if (!session?.sock?.user) throw new Error("Reconnection failed");
+    } catch (err) {
+      logger.error(`[${clientId}] Failed to reconnect: ${err.message}`);
+      throw new Error(`[${clientId}] Session not authenticated - reconnect failed`);
+    }
   }
 
   const limiterKey = `${userId}-${deviceId}`;
@@ -75,7 +68,7 @@ async function processMessageJob(job) {
       : `${currentNumber}@s.whatsapp.net`;
 
     try {
-      // RATE LIMIT HANDLING
+      // Rate limiting
       let consumed = false;
       while (!consumed) {
         try {
@@ -95,23 +88,22 @@ async function processMessageJob(job) {
           continue;
         }
       } catch (err) {
-        logger.warn(`[${clientId}] Socket dropped, enqueueing reconnect`);
-        await messageQueue.add("reconnect", { clientId }, {
-          delay: 3000,
-          attempts: 3,
-          backoff: { type: "exponential", delay: 3000 },
-          removeOnComplete: true,
-          removeOnFail: true,
-        });
-        throw new Error("Socket dropped - reconnect triggered");
+        logger.warn(`[${clientId}] Socket dropped. Trying reconnect...`);
+        try {
+          await createClient(clientId);
+          session = getSession(clientId);
+        } catch (e) {
+          logger.error(`[${clientId}] Reconnect failed during socket drop: ${e.message}`);
+          throw new Error("Socket dropped and reconnect failed");
+        }
       }
 
-      // ✅ SEND TEXT
+      // Send message
       if (message?.trim()) {
         await session.sock.sendMessage(jid, { text: message });
       }
 
-      // ✅ SEND ATTACHMENTS
+      // Send attachments
       for (let i = 0; i < attachments.length; i++) {
         const file = attachments[i];
         if (!file || !file.path || !file.mimetype || !file.originalname) {
@@ -206,20 +198,6 @@ async function cleanupAttachments(attachments) {
 export const worker = new Worker(
   "message-queue",
   async (job) => {
-    const { clientId } = job.data;
-
-    if (job.name === "reconnect" && clientId) {
-      logger.info(`[Worker] Reconnecting session for ${clientId}`);
-      try {
-        await createClient(clientId);
-        logger.info(`[Worker] Successfully reconnected ${clientId}`);
-      } catch (error) {
-        logger.error(`[Worker] Failed to reconnect ${clientId}: ${error.message}`);
-        throw error;
-      }
-      return;
-    }
-
     await processMessageJob(job);
   },
   {

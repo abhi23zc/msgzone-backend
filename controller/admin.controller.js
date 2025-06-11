@@ -1,0 +1,120 @@
+import { User } from "../models/user.Schema.js";
+import { MessageLog } from "../models/_message.log.schema.js";
+import { ActivityLog } from "../models/activity.Schma.js";
+
+
+export const getDashboardStats = async (req, res) => {
+  try {
+    const adminId = req?.user?.userId;
+
+    const totalUsers = await User.countDocuments({ isActive: true, createdBy: adminId });
+    const dormantAccounts = await User.countDocuments({ isActive: false, createdBy: adminId });
+    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+
+    const totalMessages = await MessageLog.countDocuments({
+      userId: { $in: userIds },
+    });
+
+    const totalRevenue = 452831; 
+
+    res.json({
+      totalUsers,
+      dormantAccounts,
+      totalMessages,
+      totalRevenue,
+    });
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch dashboard stats" });
+  }
+};
+
+
+export const getWeeklyMessageStats = async (req, res) => {
+  try {
+    const adminId = req?.user?.userId;
+    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+    const today = new Date();
+
+    const last7Days = [...Array(7)].map((_, i) => {
+      const date = new Date();
+      date.setUTCDate(today.getUTCDate() - i);
+      date.setUTCHours(0, 0, 0, 0);
+
+      return {
+        day: date.toLocaleDateString("en-US", { weekday: "short" }),
+        date,
+      };
+    });
+
+    const stats = await Promise.all(
+      last7Days.map(async ({ day, date }) => {
+        const nextDate = new Date(date);
+        nextDate.setUTCDate(date.getUTCDate() + 1);
+
+        const count = await MessageLog.countDocuments({
+          userId: { $in: userIds },
+          createdAt: { $gte: date, $lt: nextDate },
+        });
+
+        return { day, count };
+      })
+    );
+
+    res.json(stats.reverse());
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch weekly message stats" });
+  }
+};
+
+export const getUserGrowthStats = async (req, res) => {
+  try {
+    const adminId = req?.user?.userId;
+    const today = new Date();
+
+    const last7Days = [...Array(7)].map((_, i) => {
+      const date = new Date();
+      date.setUTCDate(today.getUTCDate() - i);
+      date.setUTCHours(0, 0, 0, 0);
+
+      return {
+        day: date.toLocaleDateString("en-US", { weekday: "short" }),
+        date,
+      };
+    });
+
+    const stats = await Promise.all(
+      last7Days.map(async ({ day, date }) => {
+        const nextDate = new Date(date);
+        nextDate.setUTCDate(date.getUTCDate() + 1);
+
+        const count = await User.countDocuments({
+          createdBy: adminId,
+          createdAt: { $gte: date, $lt: nextDate },
+        });
+
+        return { day, count };
+      })
+    );
+
+    res.json(stats.reverse());
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: "Failed to fetch user growth stats" });
+  }
+};
+
+export const getLiveActivity = async (req, res) => {
+  try {
+    const adminId = req?.user?.userId;
+    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+
+    const activities = await ActivityLog.find({ userId: { $in: userIds } })
+      .sort({ createdAt: -1 })
+      .limit(10);
+
+    res.json(activities);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch live activity" });
+  }
+};

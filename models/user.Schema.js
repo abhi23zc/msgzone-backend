@@ -96,6 +96,13 @@ const UserSchema = new mongoose.Schema(
     lastLogin: {
       type: Date,
     },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      required: function () {
+        return this.role === "user";
+      },
+    },
   },
   {
     timestamps: true,
