@@ -2,32 +2,48 @@ import { User } from "../models/user.Schema.js";
 import { MessageLog } from "../models/_message.log.schema.js";
 import { ActivityLog } from "../models/activity.Schma.js";
 
-
 export const getDashboardStats = async (req, res) => {
   try {
     const adminId = req?.user?.userId;
 
-    const totalUsers = await User.countDocuments({ isActive: true, createdBy: adminId });
-    const dormantAccounts = await User.countDocuments({ isActive: false, createdBy: adminId });
+    const totalUsers = await User.countDocuments({
+      createdBy: adminId,
+    });
+    const activeUsers = await User.countDocuments({
+      isActive: true,
+      createdBy: adminId,
+    });
+    const dormantAccounts = await User.countDocuments({
+      isActive: false,
+      createdBy: adminId,
+    });
     const userIds = await User.find({ createdBy: adminId }).distinct("_id");
 
     const totalMessages = await MessageLog.countDocuments({
       userId: { $in: userIds },
     });
 
-    const totalRevenue = 452831; 
+    const totalRevenue = 452831;
 
     res.json({
-      totalUsers,
-      dormantAccounts,
-      totalMessages,
-      totalRevenue,
+      status: true,
+      message: "Dashboard Stats",
+      data: {
+        totalUsers,
+        activeUsers,
+        dormantAccounts,
+        totalMessages,
+        totalRevenue,
+      },
     });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch dashboard stats" });
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch dashboard stats",
+      data: null
+    });
   }
 };
-
 
 export const getWeeklyMessageStats = async (req, res) => {
   try {
@@ -60,10 +76,18 @@ export const getWeeklyMessageStats = async (req, res) => {
       })
     );
 
-    res.json(stats.reverse());
+    res.json({
+      status: true,
+      message: "Weekly message stats retrieved successfully",
+      data: stats.reverse()
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch weekly message stats" });
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch weekly message stats",
+      data: null
+    });
   }
 };
 
@@ -97,10 +121,18 @@ export const getUserGrowthStats = async (req, res) => {
       })
     );
 
-    res.json(stats.reverse());
+    res.json({
+      status: true,
+      message: "User growth stats retrieved successfully",
+      data: stats.reverse()
+    });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ error: "Failed to fetch user growth stats" });
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch user growth stats",
+      data: null
+    });
   }
 };
 
@@ -113,8 +145,16 @@ export const getLiveActivity = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(10);
 
-    res.json(activities);
+    res.json({
+      status: true,
+      message: "Live activities retrieved successfully",
+      data: activities
+    });
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch live activity" });
+    res.status(500).json({
+      status: false,
+      message: "Failed to fetch live activity",
+      data: null
+    });
   }
 };

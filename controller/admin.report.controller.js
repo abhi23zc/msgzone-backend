@@ -71,7 +71,6 @@ export const getMessageReportList = async (req, res) => {
         message: msg.text || "-",
         status: msg.status === "error" ? "Failed" : capitalize(msg.status),
         sentTime: sent?.toISOString(),
-
         user: msg.userId?.name || "N/A",
         createdAt: msg.createdAt?.toISOString(),
       };

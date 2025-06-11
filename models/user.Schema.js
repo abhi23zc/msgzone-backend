@@ -55,8 +55,7 @@ const UserSchema = new mongoose.Schema(
     password: {
       type: String,
       required: [true, "Password is required"],
-      minlength: 6,
-      select: false,
+      minlength: 6
     },
     isActive: {
       type: Boolean,
@@ -98,10 +97,7 @@ const UserSchema = new mongoose.Schema(
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: function () {
-        return this.role === "user";
-      },
+      ref: "User"
     },
   },
   {
