@@ -21,7 +21,8 @@ app.use(
       "https://msgzone.vercel.app",
       "https://whatsapp.webifyit.in",
       "https://whatsapp.web.webifyit.in",
-      "https://dev.whatsapp.web.webifyit.in"
+      "https://dev.whatsapp.web.webifyit.in",
+
     ],
     credentials: true,
   })
@@ -47,18 +48,8 @@ app.get("/health", (req, res) => {
 });
 
 // Cron job to restore sessions every 5 hours
-cron.schedule("0 */5 * * *", async () => {
-  console.log("Running restoreSessions every 5 hours");
-  try {
-    await restoreSessions(); 
-    console.log("Sessions restored successfully");
-  } catch (err) {
-    console.error("Error restoring sessions:", err);
-  }
-});
-
-// cron.schedule("* * * * *", async () => {
-//   console.log("Running restoreSessions every 1 minute");
+// cron.schedule("0 */5 * * *", async () => {
+//   console.log("Running restoreSessions every 5 hours");
 //   try {
 //     await restoreSessions(); 
 //     console.log("Sessions restored successfully");
@@ -67,7 +58,18 @@ cron.schedule("0 */5 * * *", async () => {
 //   }
 // });
 
+cron.schedule("* * * * *", async () => {
+  console.log("Running restoreSessions every 1 minute");
+  try {
+    await restoreSessions(); 
+    console.log("Sessions restored successfully");
+  } catch (err) {
+    console.error("Error restoring sessions:", err);
+  }
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  restoreSessions()
 });
