@@ -18,10 +18,14 @@ import redis from "../utils/redis.js";
 import { messageQueue } from "../utils/messageQueue.js";
 import { v4 as uuid } from "uuid";
 import { worker } from "../utils/messageWorker.js";
-import moment from 'moment'
+import moment from "moment";
 import { htmlToWhatsapp } from "../utils/htmltoWhatsapp.js";
 
 const sessions = {};
+
+const reconnectionAttempts = {};
+const MAX_RETRIES = 3;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -33,268 +37,280 @@ worker.on("failed", (job, err) => {
 });
 
 // ✅ Create client
-// export async function createClient(clientId) {
-//   const memBefore = process.memoryUsage().rss;
-//   const [userId, deviceId] = clientId.split('-');
-//   const sessionFolder = path.join(__dirname, '..', 'sessions', clientId);
-
-//   if (!fs.existsSync(sessionFolder)) {
-//     fs.mkdirSync(sessionFolder, { recursive: true });
-//   }
-
-//   const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-//   const { version } = await fetchLatestBaileysVersion();
-
-//   // Check if we already have a session before creating a new one
-//   if (sessions[clientId] && sessions[clientId].sock) {
-//     logger.info(`[${clientId}] Session already exists, reusing`);
-//     return sessions[clientId];
-//   }
-
-//   const sock = makeWASocket({
-//     version,
-//     auth: state,
-//     printQRInTerminal: false,
-//     getMessage: async () => undefined,
-//     generateHighQualityLinkPreview: false,
-//     shouldSyncHistoryMessage: false,
-//     syncFullHistory: false,
-//     markOnlineOnConnect: false,
-//     msgRetryCounterMap: {},
-   
-//   });
-
-//   sessions[clientId] = {
-//     sock,
-//     qr: null,
-//     user: null,
-//     qrGeneratedAt: null,
-//     qrTimeout: null,
-//   };
-
-//   const user = await User.findById(userId);
-
-//   sock.ev.on('connection.update', async ({ connection, qr, lastDisconnect }) => {
-//     try {
-//       if (qr && connection !== 'open' && !sessions[clientId].qr) {
-//         const qrImage = await qrcode.toDataURL(qr);
-//         sessions[clientId].qr = qrImage;
-//         sessions[clientId].qrGeneratedAt = Date.now();
-//         console.log(`[${clientId}] QR Generated`);
-
-//         sessions[clientId].qrTimeout = setTimeout(() => {
-//           if (!sessions[clientId].user) {
-//             console.log(`[${clientId}] QR not scanned. Destroying session.`);
-//             destroySession(clientId);
-//           }
-//         }, 60 * 1000);
-//       }
-
-//       if (connection === 'open') {
-//         sessions[clientId].user = sock.user;
-//         clearTimeout(sessions[clientId].qrTimeout);
-//         sessions[clientId].qrTimeout = null;
-
-//         const device = user.devices.find((d) => d.deviceId === deviceId);
-//         if (device) device.status = 'connected';
-//         else user.devices.push({ deviceId, status: 'connected' });
-
-//         await user.save();
-//         console.log(`[${clientId}] Logged in`);
-//       }
-
-//       if (connection === 'close') {
-//         const statusCode = lastDisconnect?.error?.output?.statusCode;
-//         const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-        
-//         // Don't immediately delete the session
-//         // Keep track of reconnection attempts
-//         if (!sessions[clientId].reconnectAttempts) {
-//           sessions[clientId].reconnectAttempts = 0;
-//         }
-        
-//         if (shouldReconnect && sessions[clientId].reconnectAttempts < 10) {
-//           // Exponential backoff for reconnection
-//           const attempts = ++sessions[clientId].reconnectAttempts;
-//           const delay = Math.min(Math.pow(2, attempts) * 1000, 300000); // Max 5 minutes
-          
-//           logger.info(`[${clientId}] Connection closed. Reconnect attempt ${attempts} in ${delay/1000}s`);
-          
-//           await messageQueue.add('reconnect', { clientId }, { 
-//             delay,
-//             attempts: 3,
-//             backoff: { type: "exponential", delay: 5000 }
-//           });
-//         } else {
-//           // Only destroy session after max attempts or if logged out
-//           logger.warn(`[${clientId}] Giving up reconnection after ${sessions[clientId].reconnectAttempts} attempts`);
-          
-//           // Clean up resources
-//           fs.rm(sessionFolder, { recursive: true, force: true }, (err) => {
-//             if (err) console.error(`Failed to remove session folder: ${err.message}`);
-//           });
-
-//           const device = user.devices.find((d) => d.deviceId === deviceId);
-//           if (device) device.status = 'disconnected';
-//           else user.devices.push({ deviceId, status: 'disconnected' });
-
-//           await user.save();
-          
-//           // Now we can safely delete the session
-//           delete sessions[clientId];
-//         }
-//       }
-//     } catch (err) {
-//       console.error(`Connection error: ${err.message}`);
-//     }
-//   });
-
-//   sock.ev.on('creds.update', async () => {
-//     try {
-//       await saveCreds();
-      
-//     } catch (err) {
-//       console.error(`Cred saving error: ${err.message}`);
-//     }
-//   });
-
-//   const memAfter = process.memoryUsage().rss;
-//   console.log(`[${clientId}] Memory usage: ${(memAfter - memBefore) / 1024 / 1024} MB`);
-// }
 
 export async function createClient(clientId) {
+  if (sessions[clientId]?.sock?.user) {
+    logger.info(`[${clientId}] Session already connected. Skipping creation.`);
+    return;
+  }
+
   const memBefore = process.memoryUsage().rss;
-  const [userId, deviceId] = clientId.split("-");
+  const [userId, deviceId] = clientId?.split("-");
   const sessionFolder = path.join(__dirname, "..", "sessions", clientId);
 
-  if (!fs.existsSync(sessionFolder)) {
-    fs.mkdirSync(sessionFolder, { recursive: true });
-  }
+  try {
+    const user = await User.findById(userId);
+    if (!user) throw new Error("User not found");
 
-  const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
-  const { version } = await fetchLatestBaileysVersion();
+    if (!fs.existsSync(sessionFolder)) {
+      fs.mkdirSync(sessionFolder, { recursive: true });
+    }
 
-  // If session exists and connected, skip
-  if (sessions[clientId]?.sock?.user) {
-    logger.info(`[${clientId}] Existing session found, skipping re-creation`);
-    return sessions[clientId];
-  }
+    const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+    const { version } = await fetchLatestBaileysVersion();
 
-  const sock = makeWASocket({
-    version,
-    auth: state,
-    printQRInTerminal: false,
-    getMessage: async () => undefined,
-    generateHighQualityLinkPreview: false,
-    shouldSyncHistoryMessage: false,
-    syncFullHistory: false,
-    markOnlineOnConnect: false,
-    msgRetryCounterMap: {},
-    connectTimeoutMs: 60000, 
-    keepAliveIntervalMs: 25000, 
-    retryRequestDelayMs: 1000, 
-    defaultQueryTimeoutMs: 60000, 
-    emitOwnEvents: false, 
-  });
+    const sock = makeWASocket({
+      version,
+      auth: state,
+      printQRInTerminal: false,
+      getMessage: async () => undefined,
+      generateHighQualityLinkPreview: false,
+      shouldSyncHistoryMessage: false,
+      syncFullHistory: false,
+      markOnlineOnConnect: false,
+      msgRetryCounterMap: {},
+    });
 
-  sessions[clientId] = {
-    sock,
-    qr: null,
-    user: null,
-    qrGeneratedAt: null,
-    qrTimeout: null,
-    reconnectAttempts: 0,
-  };
+    sessions[clientId] = {
+      sock,
+      qr: null,
+      qrGeneratedAt: null,
+      user: null,
+      qrTimeout: null,
+    };
 
-  const user = await User.findById(userId);
+    sock.ev.on("connection.update", async ({ connection, qr, lastDisconnect }) => {
+      try {
+        const statusCode = lastDisconnect?.error?.output?.statusCode;
+        const isLoggedOut = statusCode === DisconnectReason.loggedOut;
+        const shouldReconnect = !isLoggedOut;
 
-  sock.ev.on("connection.update", async ({ connection, qr, lastDisconnect }) => {
-    try {
-      if (qr && connection !== "open") {
-        const qrImage = await qrcode.toDataURL(qr);
-        sessions[clientId].qr = qrImage;
-        sessions[clientId].qrGeneratedAt = Date.now();
-        logger.info(`[${clientId}] QR generated`);
+        // QR Code Generation
+        if (qr && connection !== "open" && !sessions[clientId].qr) {
+          const qrImage = await qrcode.toDataURL(qr);
+          sessions[clientId].qr = qrImage;
+          sessions[clientId].qrGeneratedAt = Date.now();
+          logger.info(`[${clientId}] QR generated`);
 
-        if (!sessions[clientId].qrTimeout) {
           sessions[clientId].qrTimeout = setTimeout(() => {
-            if (!sessions[clientId].user) {
-              logger.warn(`[${clientId}] QR not scanned, destroying session`);
+            if (!sessions[clientId]?.user) {
+              logger.warn(`[${clientId}] QR expired. Destroying session.`);
               destroySession(clientId);
             }
           }, 30 * 1000);
         }
-      }
 
-      // 💡 Set user immediately when available
-      if (!sessions[clientId].user && sock.user) {
-        logger.info(`[${clientId}] ✅ Detected active session during connection update`);
-        sessions[clientId].user = sock.user;
-        clearTimeout(sessions[clientId].qrTimeout);
-        sessions[clientId].qrTimeout = null;
+        // On Connect
+        if (connection === "open") {
+          sessions[clientId].user = sock.user;
+          sessions[clientId].qr = null;
+          if (sessions[clientId].qrTimeout) {
+            clearTimeout(sessions[clientId].qrTimeout);
+          }
+          reconnectionAttempts[clientId] = 0;
 
-        const device = user.devices.find((d) => d.deviceId === deviceId);
-        if (device) device.status = "connected";
-        else user.devices.push({ deviceId, status: "connected" });
+          const device = user.devices.find((d) => d.deviceId === deviceId);
+          if (device) device.status = "connected";
+          else user.devices.push({ deviceId, status: "connected" });
 
-        await user.save();
-        await saveCreds();
-      }
+          await user.save();
+          logger.info(`[${clientId}] Connected as ${sock.user.id}`);
+        }
 
-      if (connection === "open") {
-        logger.info(`✅[${clientId}] Connection opened`);
-      }
+        // On Disconnect
+        if (connection === "close") {
+          logger.warn(`[${clientId}] Connection closed. Reconnect: ${shouldReconnect}`);
+          delete sessions[clientId];
 
-      if (connection === "close") {
-        const statusCode = lastDisconnect?.error?.output?.statusCode;
-        const shouldReconnect = statusCode !== DisconnectReason.loggedOut;
-
-        if (shouldReconnect && sessions[clientId].reconnectAttempts < 10) {
-          const attempts = ++sessions[clientId].reconnectAttempts;
-          const delay = Math.min(Math.pow(2, attempts) * 1000, 300000); // Max 5 min
-
-          logger.info(`[${clientId}] Connection closed. Retry ${attempts} in ${delay / 1000}s`);
-
-          await messageQueue.add(
-            "reconnect",
-            { clientId },
-            {
-              delay,
-              attempts: 3,
-              backoff: { type: "exponential", delay: 5000 },
-            }
-          );
-        } else {
-          logger.warn(`[${clientId}] Max reconnect attempts reached or logged out`);
-
-          fs.rm(sessionFolder, { recursive: true, force: true }, (err) => {
-            if (err) console.error(`Failed to remove session folder: ${err.message}`);
-          });
-
+          // Update DB status
           const device = user.devices.find((d) => d.deviceId === deviceId);
           if (device) device.status = "disconnected";
           else user.devices.push({ deviceId, status: "disconnected" });
-
           await user.save();
-          delete sessions[clientId];
+
+          // If logout → destroy session & folder
+          if (isLoggedOut) {
+            logger.info(`[${clientId}] Logged out. Destroying session.`);
+            await destroySession(clientId);
+            return;
+          }
+
+          // Try reconnecting
+          reconnectionAttempts[clientId] = (reconnectionAttempts[clientId] || 0) + 1;
+          if (reconnectionAttempts[clientId] <= MAX_RETRIES) {
+            logger.warn(`[${clientId}] Reconnecting (${reconnectionAttempts[clientId]}/${MAX_RETRIES})`);
+            await createClient(clientId);
+          } else {
+            logger.error(`[${clientId}] Max reconnect attempts reached.`);
+          }
         }
+      } catch (err) {
+        logger.error(`[${clientId}] connection.update error: ${err.message}`);
       }
-    } catch (err) {
-      console.error(`[${clientId}] connection.update error: ${err.message}`);
-    }
-  });
+    });
 
-  sock.ev.on("creds.update", async () => {
-    try {
-      await saveCreds();
-    } catch (err) {
-      console.error(`[${clientId}] Creds update failed: ${err.message}`);
-    }
-  });
+    sock.ev.on("creds.update", async () => {
+      try {
+        if (!fs.existsSync(sessionFolder)) fs.mkdirSync(sessionFolder, { recursive: true });
+        await saveCreds();
+      } catch (err) {
+        logger.error(`[${clientId}] Failed to save creds: ${err.message}`);
+      }
+    });
 
-  const memAfter = process.memoryUsage().rss;
-  logger.info(`[${clientId}] Memory used: ${(memAfter - memBefore) / 1024 / 1024} MB`);
+    const memAfter = process.memoryUsage().rss;
+    logger.info(`[${clientId}] Memory used: ${(memAfter - memBefore) / 1024 / 1024} MB`);
+  } catch (err) {
+    logger.error(`[${clientId}] Client creation failed: ${err.message}`);
+    throw err;
+  }
 }
+
+// ✅Create Client New
+// export async function createClient(clientId) {
+//   const memBefore = process.memoryUsage().rss;
+
+//   try {
+//     const [userId, deviceId] = clientId?.split("-");
+//     const sessionFolder = path.join(__dirname, "..", "sessions", clientId);
+
+//     logger.info(`Creating session for: ${clientId}`);
+//     const user = await User.findById(userId);
+
+//     if (!fs.existsSync(sessionFolder)) {
+//       fs.mkdirSync(sessionFolder, { recursive: true });
+//     }
+
+//     const { state, saveCreds } = await useMultiFileAuthState(sessionFolder);
+//     const { version } = await fetchLatestBaileysVersion();
+
+//     const sock = makeWASocket({
+//       version,
+//       auth: state,
+//       printQRInTerminal: false,
+//       getMessage: async () => undefined,
+//       generateHighQualityLinkPreview: false,
+//       shouldSyncHistoryMessage: false,
+//       syncFullHistory: false,
+//       markOnlineOnConnect: false,
+//       msgRetryCounterMap: {},
+//     });
+
+//     sessions[clientId] = {
+//       sock,
+//       qr: null,
+//       qrGeneratedAt: null,
+//       user: null,
+//       qrTimeout: null,
+//     };
+
+//     sock.ev.on("connection.update", async ({ connection, qr, lastDisconnect }) => {
+//       try {
+//         if (qr && connection !== "open" && !sessions[clientId].qr) {
+//           const qrImage = await qrcode.toDataURL(qr);
+//           sessions[clientId].qr = qrImage;
+//           sessions[clientId].qrGeneratedAt = Date.now();
+//           logger.info(`[${clientId}] QR generated`);
+
+//           sessions[clientId].qrTimeout = setTimeout(() => {
+//             if (!sessions[clientId]?.user) {
+//               logger.warn(`[${clientId}] QR not scanned in time. Destroying session.`);
+//               destroySession(clientId);
+//             }
+//           }, 30 * 1000);
+//         }
+
+//         if (connection === "open") {
+//           reconnectAttempts[clientId] = 0; // Reset on success
+//           sessions[clientId].user = sock.user;
+//           sessions[clientId].qr = null;
+//           sessions[clientId].qrGeneratedAt = null;
+
+//           if (sessions[clientId].qrTimeout) {
+//             clearTimeout(sessions[clientId].qrTimeout);
+//             sessions[clientId].qrTimeout = null;
+//           }
+
+//           const device = user.devices.find((d) => d.deviceId === deviceId);
+//           if (device) {
+//             device.status = "connected";
+//           } else {
+//             user.devices.push({ deviceId, status: "connected" });
+//           }
+//           await User.findByIdAndUpdate(userId, { devices: user.devices });
+
+//           logger.info(`[${clientId}] Logged in as ${sock.user.id}`);
+//         }
+
+//         if (connection === "close") {
+//           logger.warn(`[${clientId}] Disconnect reason:`, lastDisconnect?.error);
+
+//           const shouldReconnect =
+//             lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+
+//           logger.warn(`[${clientId}] Connection closed. Reconnect: ${shouldReconnect}`);
+
+//           if (sock?.end) sock.end();
+//           delete sessions[clientId];
+
+//           if (shouldReconnect) {
+//             reconnectAttempts[clientId] = (reconnectAttempts[clientId] || 0) + 1;
+
+//             if (reconnectAttempts[clientId] > MAX_RECONNECT_ATTEMPTS) {
+//               logger.error(
+//                 `[${clientId}] Reconnect attempts exceeded (${MAX_RECONNECT_ATTEMPTS}). Stopping session.`
+//               );
+//               return;
+//             }
+
+//             logger.info(`[${clientId}] Reconnect attempt ${reconnectAttempts[clientId]}`);
+//             setTimeout(async () => {
+//               try {
+//                 await createClient(clientId);
+//               } catch (err) {
+//                 logger.error(`Retry reconnect failed for ${clientId}: ${err.message}`);
+//               }
+//             }, 5000);
+//           } else {
+//             setTimeout(() => {
+//               fs.rm(sessionFolder, { recursive: true, force: true }, (err) => {
+//                 if (err) logger.error(`Failed to remove session: ${err.message}`);
+//                 else logger.info(`Session folder removed: ${sessionFolder}`);
+//               });
+//             }, 1000);
+
+//             const device = user.devices.find((d) => d.deviceId === deviceId);
+//             if (device) {
+//               device.status = "disconnected";
+//             } else {
+//               user.devices.push({ deviceId, status: "disconnected" });
+//             }
+//             await User.findByIdAndUpdate(userId, { devices: user.devices });
+//           }
+//         }
+//       } catch (err) {
+//         logger.error(`Connection update error: ${err.message}`);
+//       }
+//     });
+
+//     sock.ev.on("creds.update", async () => {
+//       try {
+//         if (!fs.existsSync(sessionFolder)) {
+//           fs.mkdirSync(sessionFolder, { recursive: true });
+//         }
+//         await saveCreds();
+//       } catch (err) {
+//         logger.error(`Failed to save credentials: ${err.message}`);
+//       }
+//     });
+
+//     const memAfter = process.memoryUsage().rss;
+//     logger.info(`[${clientId}] Memory used: ${(memAfter - memBefore) / 1024 / 1024} MB`);
+//   } catch (err) {
+//     logger.error(`Client creation failed: ${err.message}`);
+//     throw err;
+//   }
+// }
 
 // ✅ Get session
 export function getSession(clientId) {
@@ -302,38 +318,55 @@ export function getSession(clientId) {
 }
 
 // ❌ Destroy session
-export function destroySession(clientId) {
+
+export async function destroySession(clientId) {
   const session = sessions[clientId];
-  if (session) {
-    try {
-      session.sock.logout().catch(() => {});
-      session.sock.ws?.close();
-      session.sock.ev.removeAllListeners();
-    } catch (e) {
-      logger.warn(`[${clientId}] Error during logout: ${e.message}`);
-    }
-
-    if (session.qrTimeout) {
-      clearTimeout(session.qrTimeout);
-    }
-
-    // Nullify everything
-    sessions[clientId].sock = null;
-    sessions[clientId].qr = null;
-    sessions[clientId].user = null;
-    sessions[clientId] = null;
-    delete sessions[clientId];
-
-    const sessionPath = path.join(__dirname, "..", "sessions", clientId);
-    try {
-      fs.rmSync(sessionPath, { recursive: true, force: true });
-    } catch (e) {
-      logger.warn(`Failed to remove session folder: ${e.message}`);
-    }
-
-    logger.info(`Session ${clientId} destroyed`);
+  if (!session) {
+    logger.warn(`No session found to destroy for ${clientId}`);
   }
+  else delete sessions[clientId];
+
+  const [userId, deviceId] = clientId.split("-");
+
+  try {
+    // Disconnect and cleanup
+    await session.sock?.logout?.().catch(() => { });
+    session.sock?.ws?.close?.();
+    session.sock?.ev?.removeAllListeners?.();
+    if (session.qrTimeout) clearTimeout(session.qrTimeout);
+  } catch (e) {
+    logger.warn(`[${clientId}] Error during logout: ${e.message}`);
+  }
+  
+
+  // Delete session folder
+  const sessionPath = path.join(__dirname, "..", "sessions", clientId);
+  console.log("Session Path", sessionPath)
+  try {
+    fs.rmSync(sessionPath, { recursive: true, force: true });
+    logger.info(`[${clientId}] Session folder removed`);
+  } catch (e) {
+    logger.warn(`[${clientId}] Failed to remove folder: ${e.message}`);
+  }
+
+  // Update MongoDB device status
+  try {
+    const user = await User.findById(userId);
+    if (user) {
+      const device = user.devices.find((d) => d.deviceId === deviceId);
+      if (device) {
+        device.status = "disconnected";
+        await user.save();
+        logger.info(`[${clientId}] Device marked as disconnected in DB`);
+      }
+    }
+  } catch (e) {
+    logger.error(`[${clientId}] Failed to update MongoDB: ${e.message}`);
+  }
+
+  logger.info(`✅ Session ${clientId} fully destroyed`);
 }
+
 
 // ✅ Start Session for client
 export const start = async (req, res) => {
@@ -395,82 +428,13 @@ export const connect = async (req, res) => {
     .json({ status: false, message: "Failed to generate QR", data: null });
 };
 
-// ❌ Send Single message Outdated
-// export const sendSingle = async (req, res) => {
-//   const { deviceId, number, message, timer } = req.body;
-//   const userId = req.user.userId;
-//   if (!deviceId || !number || !message) {
-//     return res
-//       .status(400)
-//       .json({ status: false, message: "Missing required fields" });
-//   }
-//   const clientId = `${req.user.userId}-${deviceId}`;
-
-//   const session = getSession(clientId);
-//   if (!session || !session.user) {
-//     return res
-//       .status(400)
-//       .json({ status: false, message: "Client not logged in" });
-//   }
-
-//   const jid = number.includes("@s.whatsapp.net")
-//     ? number
-//     : `${number}@s.whatsapp.net`;
-//   const messageLog = new MessageLog({ userId, messages: [] });
-//   const results = [];
-//   try {
-//     const [result] = await session.sock.onWhatsApp(jid);
-//     if (!result?.exists) {
-//       results.push({
-//         number,
-//         text: message,
-//         status: "error",
-//         sendFrom: deviceId,
-//         sendTo: number,
-//       });
-//       messageLog.messages = results;
-//       messageLog.status = "error";
-//       await messageLog.save();
-//       return res.json({ status: true, message: "Message sent" });
-//     }
-//     await session.sock.sendMessage(jid, { text: message });
-//     results.push({
-//       number,
-//       text: message,
-//       status: "delivered",
-//       sendFrom: deviceId,
-//       sendTo: number,
-//     });
-//     messageLog.messages = results;
-//     messageLog.status = "delivered";
-//     await messageLog.save();
-
-//     return res.json({ status: true, message: "Message sent" });
-//   } catch (err) {
-//     results.push({
-//       number,
-//       text: message,
-//       status: "error",
-//       sendFrom: deviceId,
-//       sendTo: number,
-//     });
-//     messageLog.messages = results;
-//     messageLog.status = "error";
-//     await messageLog.save();
-//     logger.error(`Send message failed : ${err.message}`);
-//     return res
-//       .status(500)
-//       .json({ status: false, message: "Failed to send message" });
-//   }
-// };
-
 // ✅ Send Single Message
 export const sendSingle = async (req, res) => {
   const { deviceId, number, message } = req.body;
   let captions = req.body.captions || [];
   const attachments = req.files;
   const userId = req.user.userId;
-  captions = [...captions]; 
+  captions = [...captions];
   if (!deviceId || !number) {
     if (attachments?.length)
       attachments.forEach((file) => fs.unlinkSync(file.path));
@@ -479,11 +443,13 @@ export const sendSingle = async (req, res) => {
       .json({ status: false, message: "Missing required fields" });
   }
 
-  const tempAttachments = attachments?.length > 0 && attachments.map((file) => ({
-    path: file.path,
-    mimetype: file.mimetype,
-    originalname: file.originalname,
-  }));
+  const tempAttachments =
+    attachments?.length > 0 &&
+    attachments.map((file) => ({
+      path: file.path,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+    }));
 
   try {
     await messageQueue.add(
@@ -492,7 +458,7 @@ export const sendSingle = async (req, res) => {
         userId,
         deviceId,
         number,
-        message : htmlToWhatsapp(message),
+        message: htmlToWhatsapp(message),
         captions,
         attachments: tempAttachments || [],
       },
@@ -519,21 +485,21 @@ export const sendSingle = async (req, res) => {
 
 // ✅ Send Single Message Schedule
 export const sendSingleSchedule = async (req, res) => {
-  const { deviceId, number, message, schedule } = req.body; 
+  const { deviceId, number, message, schedule } = req.body;
   let captions = req.body.captions || [];
   const attachments = req.files;
   const userId = req.user.userId;
 
   let scheduledAt = null;
-  
+
   captions = [...captions];
-  
+
   if (!deviceId || !number) {
     if (attachments?.length)
       attachments.forEach((file) => fs.unlinkSync(file.path));
-    return res.status(400).json({ 
-      status: false, 
-      message: "Missing required fields" 
+    return res.status(400).json({
+      status: false,
+      message: "Missing required fields",
     });
   }
 
@@ -542,23 +508,27 @@ export const sendSingleSchedule = async (req, res) => {
     if (!validFormat) {
       return res.status(400).json({
         status: false,
-        message: "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')"
+        message:
+          "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')",
       });
     }
-    
+
     if (moment(schedule).isBefore(moment())) {
       return res.status(400).json({
         status: false,
-        message: "Schedule time must be in the future"
+        message: "Schedule time must be in the future",
       });
     }
   }
 
-  const tempAttachments = attachments?.length > 0 &&  attachments?.map((file) => ({
-    path: file.path,
-    mimetype: file.mimetype,
-    originalname: file.originalname,
-  })) || [];
+  const tempAttachments =
+    (attachments?.length > 0 &&
+      attachments?.map((file) => ({
+        path: file.path,
+        mimetype: file.mimetype,
+        originalname: file.originalname,
+      }))) ||
+    [];
 
   try {
     const jobOptions = {
@@ -567,7 +537,6 @@ export const sendSingleSchedule = async (req, res) => {
       removeOnComplete: true,
       removeOnFail: true,
     };
-
 
     // Add delay if scheduled
     if (schedule) {
@@ -582,20 +551,22 @@ export const sendSingleSchedule = async (req, res) => {
         userId,
         deviceId,
         number,
-        message : htmlToWhatsapp(message),
+        message: htmlToWhatsapp(message),
         captions,
         attachments: tempAttachments || [],
-        isScheduled: !!schedule ,
-        scheduledAt  
+        isScheduled: !!schedule,
+        scheduledAt,
       },
       jobOptions
     );
 
-    console.log(`📤 Job added ${schedule ? `(scheduled for ${schedule})` : ''} ✅`);
-    return res.status(200).json({ 
-      status: true, 
+    console.log(
+      `📤 Job added ${schedule ? `(scheduled for ${schedule})` : ""} ✅`
+    );
+    return res.status(200).json({
+      status: true,
       message: schedule ? "Message scheduled" : "Message queued",
-      data: { schedule }
+      data: { schedule },
     });
   } catch (error) {
     console.error("❌ Failed to add job to queue:", error.message);
@@ -712,7 +683,7 @@ export const sendBulk = async (req, res) => {
     let captions = req.body.captions || [];
     const attachments = req.files; // array of files
     const userId = req.user.userId;
-    
+
     numbers = JSON.parse(numbers);
     numbers = Array.isArray(numbers) ? numbers : [numbers];
     captions = Array.isArray(captions) ? captions : [captions];
@@ -726,11 +697,13 @@ export const sendBulk = async (req, res) => {
         .json({ status: false, message: "Missing required fields" });
     }
 
-    const tempAttachments = attachments?.length > 0 && attachments.map((file) => ({
-      path: file.path,
-      mimetype: file.mimetype,
-      originalname: file.originalname,
-    }));
+    const tempAttachments =
+      attachments?.length > 0 &&
+      attachments.map((file) => ({
+        path: file.path,
+        mimetype: file.mimetype,
+        originalname: file.originalname,
+      }));
 
     await messageQueue.add(
       "message-queue",
@@ -738,7 +711,7 @@ export const sendBulk = async (req, res) => {
         userId,
         deviceId,
         numbers,
-        message : htmlToWhatsapp(message),
+        message: htmlToWhatsapp(message),
         captions,
         attachments: tempAttachments || [],
         type: "bulk",
@@ -757,10 +730,9 @@ export const sendBulk = async (req, res) => {
       message: "Bulk message sent Succesfully",
       data: null,
     });
-
   } catch (error) {
     console.error("Failed to send bulk messages:", error);
-    
+
     // Cleanup any uploaded files if there was an error
     if (req.files?.length) {
       req.files.forEach((file) => {
@@ -773,7 +745,7 @@ export const sendBulk = async (req, res) => {
     return res.status(500).json({
       status: false,
       message: "Failed to send bulk messages",
-      error: error.message
+      error: error.message,
     });
   }
 };
@@ -794,7 +766,7 @@ export const sendBulkSchedule = async (req, res) => {
       }
       return res.status(400).json({
         status: false,
-        message: "Device ID and numbers are required"
+        message: "Device ID and numbers are required",
       });
     }
 
@@ -806,23 +778,24 @@ export const sendBulkSchedule = async (req, res) => {
     // Validate schedule if provided
     let delay = 0;
     let scheduledAt = null;
-    
+
     if (schedule) {
       if (!moment(schedule, moment.ISO_8601, true).isValid()) {
         return res.status(400).json({
           status: false,
-          message: "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')"
+          message:
+            "Invalid schedule format. Use ISO 8601 format (e.g., '2023-12-31T23:59:59Z')",
         });
       }
 
       if (moment(schedule).isBefore(moment())) {
         return res.status(400).json({
           status: false,
-          message: "Schedule time must be in the future"
+          message: "Schedule time must be in the future",
         });
       }
 
-      delay = moment(schedule).diff(moment(), 'milliseconds');
+      delay = moment(schedule).diff(moment(), "milliseconds");
       scheduledAt = new Date(schedule);
     }
 
@@ -853,47 +826,47 @@ export const sendBulkSchedule = async (req, res) => {
           userId,
           deviceId,
           numbers,
-          message : htmlToWhatsapp(message),
+          message: htmlToWhatsapp(message),
           captions,
           attachments: tempAttachments || [],
           type: "bulk",
           timer: timer || 1,
           isScheduled: !!schedule,
-          scheduledAt  
+          scheduledAt,
         },
         jobOptions
       );
 
       return res.json({
         status: true,
-        message: schedule 
-          ? `Bulk message scheduled for ${schedule}` 
+        message: schedule
+          ? `Bulk message scheduled for ${schedule}`
           : "Bulk message queued",
         data: {
           schedule: schedule || null,
-          count: numbers.length
-        }
+          count: numbers.length,
+        },
       });
     } catch (error) {
       console.error("❌ Failed to add bulk job:", error);
-      
+
       // Cleanup attachments on queue error
-      tempAttachments.forEach(file => {
+      tempAttachments.forEach((file) => {
         if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
       });
 
       return res.status(500).json({
         status: false,
         message: "Failed to queue bulk message",
-        error: error.message
+        error: error.message,
       });
     }
   } catch (err) {
     console.error("❌ Error in sendBulkSchedule:", err);
     return res.status(500).json({
-      status: false, 
+      status: false,
       message: "Internal server error",
-      error: err.message
+      error: err.message,
     });
   }
 };
@@ -946,20 +919,20 @@ export const sendMessageApi = async (req, res) => {
         .json({ status: false, message: "Missing required fields" });
     }
 
-    const number = (numberRaw);
-    const message = (rawMessage);
+    const number = numberRaw;
+    const message = rawMessage;
 
     try {
       await messageQueue.add(
         "message-queue",
         {
-          api:true,
+          api: true,
           userId,
           deviceId,
           number,
-          message : (message),
-          captions : [],
-          attachments:  [],
+          message: message,
+          captions: [],
+          attachments: [],
         },
         {
           attempts: 3,
@@ -971,7 +944,11 @@ export const sendMessageApi = async (req, res) => {
       console.log("📤 Job added to queue ✅");
       return res
         .status(200)
-        .json({ status: true, message: "Message Sent Succesfully", data: null });
+        .json({
+          status: true,
+          message: "Message Sent Succesfully",
+          data: null,
+        });
     } catch (error) {
       console.error("❌ Failed to add job to queue:", error.message);
       return res.status(500).json({
@@ -1189,25 +1166,36 @@ export function startSessionMonitoring() {
   setInterval(() => {
     const sessionCount = Object.keys(sessions).length;
     logger.info(`Active sessions: ${sessionCount}`);
-    
+
     // Check each session's health
     for (const clientId in sessions) {
       const session = sessions[clientId];
       if (!session || !session.sock) continue;
-      
+
       // Check if the socket is still alive
       const isConnected = session.sock.user != null;
-      logger.debug(`[${clientId}] Connection status: ${isConnected ? 'connected' : 'disconnected'}`);
-      
+      logger.debug(
+        `[${clientId}] Connection status: ${isConnected ? "connected" : "disconnected"
+        }`
+      );
+
       // If disconnected but not yet recognized, trigger reconnection
       if (!isConnected && !session.reconnectAttempts) {
-        logger.warn(`[${clientId}] Detected zombie session, triggering reconnect`);
-        messageQueue.add('reconnect', { clientId }, { delay: 1000 });
+        logger.warn(
+          `[${clientId}] Detected zombie session, triggering reconnect`
+        );
+        messageQueue.add("reconnect", { clientId }, { delay: 1000 });
       }
     }
-    
+
     // Log memory usage
     const memUsage = process.memoryUsage();
-    logger.info(`Memory usage: RSS ${Math.round(memUsage.rss / 1024 / 1024)} MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}/${Math.round(memUsage.heapTotal / 1024 / 1024)} MB`);
+    logger.info(
+      `Memory usage: RSS ${Math.round(
+        memUsage.rss / 1024 / 1024
+      )} MB, Heap ${Math.round(memUsage.heapUsed / 1024 / 1024)}/${Math.round(
+        memUsage.heapTotal / 1024 / 1024
+      )} MB`
+    );
   }, 60000); // Check every minute
 }
