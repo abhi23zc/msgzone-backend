@@ -48,18 +48,8 @@ app.get("/health", (req, res) => {
 });
 
 // Cron job to restore sessions every 5 hours
-// cron.schedule("0 */5 * * *", async () => {
-//   console.log("Running restoreSessions every 5 hours");
-//   try {
-//     await restoreSessions(); 
-//     console.log("Sessions restored successfully");
-//   } catch (err) {
-//     console.error("Error restoring sessions:", err);
-//   }
-// });
-
-cron.schedule("* * * * *", async () => {
-  console.log("Running restoreSessions every 1 minute");
+cron.schedule("0 */5 * * *", async () => {
+  console.log("Running restoreSessions every 5 hours");
   try {
     await restoreSessions(); 
     console.log("Sessions restored successfully");
@@ -67,6 +57,16 @@ cron.schedule("* * * * *", async () => {
     console.error("Error restoring sessions:", err);
   }
 });
+
+// cron.schedule("* * * * *", async () => {
+//   console.log("Running restoreSessions every 1 minute");
+//   try {
+//     await restoreSessions(); 
+//     console.log("Sessions restored successfully");
+//   } catch (err) {
+//     console.error("Error restoring sessions:", err);
+//   }
+// });
 
 
 app.listen(PORT, () => {
