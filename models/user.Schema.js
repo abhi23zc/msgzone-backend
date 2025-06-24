@@ -6,10 +6,6 @@ const DeviceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    // whatsappNumber: {
-    //   type: String,
-    //   required: true,
-    // },
     status: {
       type: String,
       enum: ["connected", "disconnected", "auth_failure"],
@@ -20,7 +16,7 @@ const DeviceSchema = new mongoose.Schema(
       default: Date.now,
     },
   },
-  { _id: false } // Prevent auto-generating _id for each device
+  { _id: false } 
 );
 
 const UserSchema = new mongoose.Schema(
@@ -86,6 +82,21 @@ const UserSchema = new mongoose.Schema(
       type: [DeviceSchema],
       default: [],
     },
+
+    subscription: {
+      plan: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Plan",
+      },
+      startDate: Date,
+      endDate: Date,
+      usedMessages: {
+        type: Number,
+        default: 0,
+      },
+      deviceIds: [String],
+    },
+
     enableCode: String,
     createdAt: {
       type: Date,

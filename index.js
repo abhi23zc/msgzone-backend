@@ -3,6 +3,7 @@ import authRouter from "./routes/auth.route.js";
 import whatsappRouter from "./routes/whatsapp.route.js";
 import whatsappApiRouter from "./routes/whatsapp.api.route.js";
 import dashboardRouter from "./routes/dashboard.route.js";
+import paymentRouter from "./routes/payment.route.js";
 import adminRouter from './routes/admin.route.js';
 import connectDB from "./config/database.js";
 import cors from "cors";
@@ -10,8 +11,9 @@ import cookieParser from "cookie-parser";
 import 'dotenv/config';
 import { restoreSessions } from "./sessionStart.js";
 import cron from "node-cron"; 
+import planRouter from './routes/plan.route.js'
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORT || 8081;
 const app = express();
 
 app.use(
@@ -36,9 +38,13 @@ app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/wp", whatsappRouter);
 app.use("/api/v1/wp", dashboardRouter);
 app.use("/api/v1/dev", whatsappApiRouter);
+app.use("/api/v1/plan", planRouter)
 
 // 👩🏻‍💻Admin Routes
 app.use("/api/v1/admin", adminRouter)
+
+// 💰Payment Routes
+app.use('/api/v1/payment', paymentRouter);
 
 // ❌ Old API Version
 app.use("/api/v1/create-message", whatsappApiRouter);
@@ -46,6 +52,7 @@ app.use("/api/v1/create-message", whatsappApiRouter);
 app.get("/health", (req, res) => {
   return res.json({ msg: "System up and running" });
 });
+
 
 // Cron job to restore sessions every 5 hours
 cron.schedule("0 */5 * * *", async () => {

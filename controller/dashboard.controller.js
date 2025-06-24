@@ -4,15 +4,34 @@ import { MessageLog } from "../models/_message.log.schema.js";
 export const getAllMessages = async (req, res) => {
   try {
     const userId = req?.user?.userId;
-    const limit = parseInt(req.query.limit) || 50; 
+    const limit = parseInt(req.query.limit) || 50;
+    const page = parseInt(req.query.page) || 1;
+    const skip = (page - 1) * limit;
 
-    const messageLogs = await MessageLog.find({ userId })
+    const { from, to } = req.query;
+
+    // Build query object
+    const query = { userId };
+
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
+
+    const totalMessages = await MessageLog.countDocuments(query);
+
+    const messageLogs = await MessageLog.find(query)
       .sort({ createdAt: -1 })
+      .skip(skip)
       .limit(limit);
 
     return res.json({
       success: true,
       data: messageLogs,
+      currentPage: page,
+      totalPages: Math.ceil(totalMessages / limit),
+      totalMessages,
       message: "Messages retrieved successfully",
     });
   } catch (error) {
@@ -24,6 +43,7 @@ export const getAllMessages = async (req, res) => {
     });
   }
 };
+
 
 
 // ✅ Get only today's messages for the current user

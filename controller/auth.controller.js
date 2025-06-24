@@ -3,6 +3,8 @@ import jwt from "jsonwebtoken";
 import { sendOtpEmail } from "../utils/sendEmail.js";
 import { emailQueue } from "../utils/EmailQueue.js";
 
+let NODE_ENV = "development";
+
 function generateToken(user) {
   return jwt.sign(
     { userId: user._id, role: user.role },
@@ -58,24 +60,26 @@ export const login = async (req, res) => {
 
     const token = generateToken(user);
 
-    // ✅ For production
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-      path: "/",
-    });
-
-    // ☑️ For development
-    // res.cookie("token", token, {
-    //   httpOnly: true,
-    //   secure: false, // NO secure on localhost HTTP
-    //   sameSite: "lax", // Use "lax" or "strict", but NOT "none" for localhost HTTP
-    //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-    //   path: "/",
-    // });
+    if (NODE_ENV === "production") {
+      // ✅ For production
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      });
+    } else {
+      // ☑️ For development
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: false, // NO secure on localhost HTTP
+        sameSite: "lax", // Use "lax" or "strict", but NOT "none" for localhost HTTP
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: "/",
+      });
+    }
 
     user.lastLogin = new Date();
     user.token = token;
@@ -235,24 +239,26 @@ export const verifyOtp = async (req, res) => {
   await user.save();
 
   const token = generateToken(user);
-  // ✅ For production
-  res.cookie("token", token, {
-    httpOnly: true,
-    secure: true,
-    sameSite: "none",
-    domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
-    maxAge: 7 * 24 * 60 * 60 * 1000,
-    path: "/",
-  });
-
-  // ☑️ For development
-  // res.cookie("token", token, {
-  //   httpOnly: true,
-  //   secure: false, // NO secure on localhost HTTP
-  //   sameSite: "lax", // Use "lax" or "strict", but NOT "none" for localhost HTTP
-  //   maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-  //   path: "/",
-  // });
+  if (NODE_ENV == "production") {
+    // ✅ For production
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    });
+  } else {
+    // ☑️ For development
+    res.cookie("token", token, {
+      httpOnly: true,
+      secure: false, // NO secure on localhost HTTP
+      sameSite: "lax", // Use "lax" or "strict", but NOT "none" for localhost HTTP
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      path: "/",
+    });
+  }
 
   user.lastLogin = new Date();
   user.token = token;
@@ -304,23 +310,25 @@ export const profile = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    // ☑️ For Development
-    // res.cookie("token", "", {
-    //   httpOnly: true,
-    //   secure: true,
-    //   sameSite: "none",
-    //   expires: new Date(0), // Immediately expire the cookie
-    // });
-
-    // ✅ For Production
-    res.cookie("token", "", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain: ".webifyit.in",
-      path: "/",
-      expires: new Date(0)
-    });
+    if (NODE_ENV == "production") {
+      // ✅ For Production
+      res.cookie("token", "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        domain: ".webifyit.in",
+        path: "/",
+        expires: new Date(0),
+      });
+    } else {
+      // ☑️ For Development
+      res.cookie("token", "", {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        expires: new Date(0), // Immediately expire the cookie
+      });
+    }
 
     // If user exists in request, clear their token in DB
     if (req.user?.userId) {

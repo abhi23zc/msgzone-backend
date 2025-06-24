@@ -39,47 +39,90 @@ export const getMessageReportStats = async (req, res) => {
 
     const percentChange = prev30 > 0 ? ((last30 - prev30) / prev30) * 100 : 0;
 
-    res.json({
-      totalMessages,
-      deliveredMessages,
-      failedMessages,
-      percentChange: percentChange.toFixed(2),
+    return res.json({
+      status: true,
+      message: "Report stats fetched successfully",
+      data: {
+        totalMessages,
+        deliveredMessages,
+        failedMessages,
+        percentChange: percentChange.toFixed(2),
+      }
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch report stats" });
+    return res.status(500).json({
+      status: false,
+      message: "Failed to fetch report stats",
+      data: {}
+    });
   }
 };
+
 export const getMessageReportList = async (req, res) => {
   try {
     const adminId = req?.user?.userId;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+    const { from, to } = req.query;
 
     // Fetch all user IDs created by the admin
     const userIds = await User.find({ createdBy: adminId }).distinct("_id");
 
-    // Fetch all messages with user details
-    const messages = await MessageLog.find({ userId: { $in: userIds } })
-      .limit(20)
+    // Build query object
+    const query = { userId: { $in: userIds } };
+
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
+
+    // Get total count for pagination
+    const totalCount = await MessageLog.countDocuments(query);
+
+    // Fetch messages with pagination
+    const messages = await MessageLog.find(query)
+      .skip(skip)
+      .limit(limit)
       .sort({ createdAt: -1 })
       .populate("userId", "name");
 
     const results = messages.map((msg) => {
       const sent = msg.sentAt || msg.createdAt;
-
       return {
         recipient: msg.sendTo,
         message: msg.text || "-",
         status: msg.status === "error" ? "Failed" : capitalize(msg.status),
         sentTime: sent?.toISOString(),
+        type: msg.type,
+        sendThrough: msg?.sendThrough,
         user: msg.userId?.name || "N/A",
         createdAt: msg.createdAt?.toISOString(),
       };
     });
 
-    res.json(results);
+    return res.json({
+      status: true,
+      message: "Message reports fetched successfully",
+      data: {
+        results,
+        pagination: {
+          total: totalCount,
+          page,
+          limit,
+          totalPages: Math.ceil(totalCount / limit)
+        }
+      }
+    });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: "Failed to fetch message reports" });
+    return res.status(500).json({
+      status: false,
+      message: "Failed to fetch message reports",
+      data: {}
+    });
   }
 };
 

@@ -26,6 +26,7 @@
         "nodemon": "^3.1.10",
         "qrcode": "^1.5.4",
         "rate-limiter-flexible": "^7.1.1",
+        "razorpay": "^2.9.6",
         "whatsapp-web.js": "^1.30.0",
         "winston": "^3.17.0",
         "wwebjs-mongo": "^1.1.0",
@@ -794,6 +795,8 @@
     "rate-limiter-flexible": ["rate-limiter-flexible@7.1.1", "", {}, "sha512-lsYRcqRSJrKBNt6pMzBJTiCJP5KnwsGWdObMZxd19JFUJRntM+yuHs4/2bs6NZweSLgpsDcykvzyQaumoslWQg=="],
 
     "raw-body": ["raw-body@3.0.0", "", { "dependencies": { "bytes": "3.1.2", "http-errors": "2.0.0", "iconv-lite": "0.6.3", "unpipe": "1.0.0" } }, "sha512-RmkhL8CAyCRPXCE28MMH0z2PNWQBNk2Q09ZdxM9IOOXwxwZbN+qbWaatPkdkWIKL2ZVDImrN/pK5HTRz2PcS4g=="],
+
+    "razorpay": ["razorpay@2.9.6", "", { "dependencies": { "axios": "^1.6.8" } }, "sha512-zsHAQzd6e1Cc6BNoCNZQaf65ElL6O6yw0wulxmoG5VQDr363fZC90Mp1V5EktVzG45yPyNomNXWlf4cQ3622gQ=="],
 
     "readable-stream": ["readable-stream@3.6.2", "", { "dependencies": { "inherits": "^2.0.3", "string_decoder": "^1.1.1", "util-deprecate": "^1.0.1" } }, "sha512-9u/sniCrY3D5WdsERHzHE4G2YCXqoG5FTHUiCC4SIbr6XcLZBY05ya9EKjYek9O5xOAwjGq+1JdGBAS7Q9ScoA=="],
 

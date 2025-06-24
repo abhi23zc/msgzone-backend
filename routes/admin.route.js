@@ -9,6 +9,7 @@ import { isAuthenticated } from "../middleware/isAuthenticated.js";
 import { isAdmin } from "../middleware/authenticateAdmin.js";
 import { createUser, deleteUser, getAllUsers, getUserStats, updateUser } from "../controller/admin_user.controller.js";
 import { getMessageReportList, getMessageReportStats } from "../controller/admin.report.controller.js";
+import { assignPlanToUser, createPlan, deletePlan, getAllPlans, updatePlan } from "../controller/admin.plan.controller.js";
 
 const router = express.Router();
 
@@ -40,5 +41,15 @@ router.delete("/users/:id",  isAuthenticated, isAdmin,  deleteUser);
 // ✅ Reports Routes
 router.get("/reports/stats", isAuthenticated, isAdmin,getMessageReportStats);
 router.get("/reports/list", isAuthenticated, isAdmin,getMessageReportList);
+
+
+// ✅ Plan Management
+router.post("/plans", isAuthenticated, isAdmin, createPlan);
+router.get("/plans", isAuthenticated, isAdmin, getAllPlans);
+router.put("/plans/:id", isAuthenticated, isAdmin, updatePlan);
+router.delete("/plans/:id", isAuthenticated, isAdmin, deletePlan);
+
+// ✅ Assign Plan to User
+router.post("/assign-plan", isAuthenticated, isAdmin, assignPlanToUser);
 
 export default router;

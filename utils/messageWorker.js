@@ -11,6 +11,7 @@ import {
   createClient,
 } from "../controller/_whatsapp.controller.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
+import { incrementMessageCountRedis } from "../middleware/sendMessage.js";
 
 dotenv.config();
 
@@ -136,7 +137,7 @@ async function processMessageJob(job) {
           logger.error(`[${clientId}] Failed to send attachment: ${err.message}`);
         }
       }
-
+      await incrementMessageCountRedis(userId);
       await logMessage(api, userId, deviceId, currentNumber, message, "delivered", "", type, isScheduled, scheduledAt, attachments);
 
       if (type === "bulk") {
@@ -144,6 +145,7 @@ async function processMessageJob(job) {
       }
     } catch (error) {
       logger.error(`[${jid}] Send failed: ${error.message}`);
+      await incrementMessageCountRedis(userId);
       await logMessage(api, userId, deviceId, currentNumber, message, "error", error.message, type, isScheduled, scheduledAt, attachments);
     }
   }

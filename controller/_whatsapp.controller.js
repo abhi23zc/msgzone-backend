@@ -20,6 +20,8 @@ import { v4 as uuid } from "uuid";
 import { worker } from "../utils/messageWorker.js";
 import moment from "moment";
 import { htmlToWhatsapp } from "../utils/htmltoWhatsapp.js";
+import { canSendMessage } from "../middleware/sendMessage.js";
+import { checkDevice } from "../middleware/checkDevice.js";
 
 const sessions = {};
 
@@ -37,7 +39,6 @@ worker.on("failed", (job, err) => {
 });
 
 // ✅ Create client
-
 export async function createClient(clientId) {
   if (sessions[clientId]?.sock?.user) {
     logger.info(`[${clientId}] Session already connected. Skipping creation.`);
@@ -318,7 +319,6 @@ export function getSession(clientId) {
 }
 
 // ❌ Destroy session
-
 export async function destroySession(clientId) {
   const session = sessions[clientId];
   if (!session) {
@@ -337,7 +337,7 @@ export async function destroySession(clientId) {
   } catch (e) {
     logger.warn(`[${clientId}] Error during logout: ${e.message}`);
   }
-  
+
 
   // Delete session folder
   const sessionPath = path.join(__dirname, "..", "sessions", clientId);
@@ -376,6 +376,10 @@ export const start = async (req, res) => {
       return res
         .status(400)
         .json({ status: false, message: "Device ID required" });
+    const check = await checkDevice(req.user.userId, deviceId);
+    if (!check.allowed) {
+      return res.status(403).json({ success: false, message: check.reason });
+    }
 
     const clientId = `${req.user.userId}-${deviceId}`;
     if (sessions[clientId])
@@ -442,6 +446,11 @@ export const sendSingle = async (req, res) => {
       .status(400)
       .json({ status: false, message: "Missing required fields" });
   }
+  const check = await canSendMessage(userId);
+  if (!check.allowed) {
+    return res.status(403).json({ success: false, message: check.reason });
+  }
+
 
   const tempAttachments =
     attachments?.length > 0 &&

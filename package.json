@@ -35,6 +35,7 @@
     "nodemon": "^3.1.10",
     "qrcode": "^1.5.4",
     "rate-limiter-flexible": "^7.1.1",
+    "razorpay": "^2.9.6",
     "whatsapp-web.js": "^1.30.0",
     "winston": "^3.17.0",
     "wwebjs-mongo": "^1.1.0"
