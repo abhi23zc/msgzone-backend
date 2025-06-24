@@ -13,7 +13,7 @@ import { restoreSessions } from "./sessionStart.js";
 import cron from "node-cron"; 
 import planRouter from './routes/plan.route.js'
 
-const PORT = process.env.PORT || 8081;
+const PORT = process.env.PORT|| 8081;
 const app = express();
 
 app.use(
