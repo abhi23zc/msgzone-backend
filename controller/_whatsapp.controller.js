@@ -20,7 +20,7 @@ import { v4 as uuid } from "uuid";
 import { worker } from "../utils/messageWorker.js";
 import moment from "moment";
 import { htmlToWhatsapp } from "../utils/htmltoWhatsapp.js";
-import { canSendMessage } from "../middleware/sendMessage.js";
+import { canSendMessage, incrementMessageCount } from "../middleware/sendMessage.js";
 import { checkDevice } from "../middleware/checkDevice.js";
 
 const sessions = {};
@@ -118,7 +118,7 @@ export async function createClient(clientId) {
               user.devices.push({
                 deviceId,
                 status: "connected",
-                number: sock.user.id.split(":")[0]
+                number: sock.user.id.split(":")[0],
               });
 
             await user.save();
@@ -533,6 +533,7 @@ export const sendSingle = async (req, res) => {
       }
     );
     console.log("📤 Job added to queue ✅");
+    await incrementMessageCount(userId);
     return res
       .status(200)
       .json({ status: true, message: "Message Sent Succesfully", data: null });

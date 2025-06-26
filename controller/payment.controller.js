@@ -4,8 +4,7 @@ import { User } from "../models/user.Schema.js";
 import { Plan } from "../models/plan.schema.js";
 import { Payment } from "../models/payment.schema.js";
 import { configDotenv } from "dotenv";
-configDotenv()
-
+configDotenv();
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_HQ4tZ6kBqnghIu",
@@ -22,12 +21,12 @@ export const createRazorpayOrder = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Plan not found",
-        data: {}
+        data: {},
       });
     }
 
     const order = await razorpay.orders.create({
-      amount: plan.price*100, 
+      amount: plan.price * 100,
       currency: plan.currency || "INR",
       receipt: `receipt_${Date.now()}`,
     });
@@ -37,32 +36,31 @@ export const createRazorpayOrder = async (req, res) => {
       message: "Order created successfully",
       data: {
         orderId: order.id,
-        amount: order?.currency=="INR" ? order?.amount*100 : order?.amount,
+        amount: order?.currency == "INR" ? order?.amount * 100 : order?.amount,
         currency: order.currency,
-      }
+      },
     });
   } catch (err) {
     console.error("Error creating Razorpay order:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      data: {}
+      data: {},
     });
   }
 };
 
 // POST /verify-payment
 export const verifyPayment = async (req, res) => {
-  const {
-    razorpay_order_id,
-    razorpay_payment_id,
-    razorpay_signature,
-    planId,
-  } = req.body;
+  const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } =
+    req.body;
   const userId = req.user?.userId;
 
   try {
-    const hmac = crypto.createHmac("sha256", (process.env.RAZORPAY_KEY_SECRET || "MfDx0p5Ngmqb2G9Vk4GZeSMe"));
+    const hmac = crypto.createHmac(
+      "sha256",
+      process.env.RAZORPAY_KEY_SECRET || "MfDx0p5Ngmqb2G9Vk4GZeSMe"
+    );
     hmac.update(`${razorpay_order_id}|${razorpay_payment_id}`);
     const generatedSignature = hmac.digest("hex");
 
@@ -70,7 +68,7 @@ export const verifyPayment = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Invalid payment signature",
-        data: {}
+        data: {},
       });
     }
 
@@ -102,14 +100,14 @@ export const verifyPayment = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Payment verified and subscription activated",
-      data: null
+      data: null,
     });
   } catch (err) {
     console.error("Payment verification error:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      data: {}
+      data: {},
     });
   }
 };
@@ -124,14 +122,14 @@ export const getAllPayments = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Payments retrieved successfully",
-      data: { payments }
+      data: { payments },
     });
   } catch (err) {
     console.error("Get payments error:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      data: {}
+      data: {},
     });
   }
 };

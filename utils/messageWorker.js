@@ -11,7 +11,7 @@ import {
   createClient,
 } from "../controller/_whatsapp.controller.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
-import { incrementMessageCountRedis } from "../middleware/sendMessage.js";
+import { incrementMessageCount } from "../middleware/sendMessage.js";
 
 dotenv.config();
 
@@ -40,14 +40,18 @@ async function processMessageJob(job) {
 
   // If session doesn't exist or is unauthenticated, try reconnecting directly
   if (!session?.sock?.user) {
-    logger.warn(`[${clientId}] Session not found or not authenticated. Attempting direct reconnect...`);
+    logger.warn(
+      `[${clientId}] Session not found or not authenticated. Attempting direct reconnect...`
+    );
     try {
       await createClient(clientId);
       session = getSession(clientId);
       if (!session?.sock?.user) throw new Error("Reconnection failed");
     } catch (err) {
       logger.error(`[${clientId}] Failed to reconnect: ${err.message}`);
-      throw new Error(`[${clientId}] Session not authenticated - reconnect failed`);
+      throw new Error(
+        `[${clientId}] Session not authenticated - reconnect failed`
+      );
     }
   }
 
@@ -85,7 +89,19 @@ async function processMessageJob(job) {
       try {
         const [result] = await session.sock.onWhatsApp(jid);
         if (!result?.exists) {
-          await logMessage(api, userId, deviceId, currentNumber, message, "error", "Number does not exist", type, isScheduled, scheduledAt, []);
+          await logMessage(
+            api,
+            userId,
+            deviceId,
+            currentNumber,
+            message,
+            "error",
+            "Number does not exist",
+            type,
+            isScheduled,
+            scheduledAt,
+            []
+          );
           continue;
         }
       } catch (err) {
@@ -94,7 +110,9 @@ async function processMessageJob(job) {
           await createClient(clientId);
           session = getSession(clientId);
         } catch (e) {
-          logger.error(`[${clientId}] Reconnect failed during socket drop: ${e.message}`);
+          logger.error(
+            `[${clientId}] Reconnect failed during socket drop: ${e.message}`
+          );
           throw new Error("Socket dropped and reconnect failed");
         }
       }
@@ -108,13 +126,17 @@ async function processMessageJob(job) {
       for (let i = 0; i < attachments.length; i++) {
         const file = attachments[i];
         if (!file || !file.path || !file.mimetype || !file.originalname) {
-          logger.warn(`[${clientId}] Invalid attachment: ${JSON.stringify(file)}`);
+          logger.warn(
+            `[${clientId}] Invalid attachment: ${JSON.stringify(file)}`
+          );
           continue;
         }
 
         const fileSizeInMB = fs.statSync(file.path).size / (1024 * 1024);
         if (fileSizeInMB > MAX_FILE_SIZE_MB) {
-          logger.warn(`[${clientId}] Skipping large file: ${file.originalname}`);
+          logger.warn(
+            `[${clientId}] Skipping large file: ${file.originalname}`
+          );
           continue;
         }
 
@@ -124,7 +146,13 @@ async function processMessageJob(job) {
         const isImage = mime.startsWith("image/");
         const isVideo = mime.startsWith("video/");
         const isAudio = mime.startsWith("audio/");
-        const typeKey = isImage ? "image" : isVideo ? "video" : isAudio ? "audio" : "document";
+        const typeKey = isImage
+          ? "image"
+          : isVideo
+          ? "video"
+          : isAudio
+          ? "audio"
+          : "document";
 
         try {
           await session.sock.sendMessage(jid, {
@@ -134,26 +162,63 @@ async function processMessageJob(job) {
             caption,
           });
         } catch (err) {
-          logger.error(`[${clientId}] Failed to send attachment: ${err.message}`);
+          logger.error(
+            `[${clientId}] Failed to send attachment: ${err.message}`
+          );
         }
       }
-      await incrementMessageCountRedis(userId);
-      await logMessage(api, userId, deviceId, currentNumber, message, "delivered", "", type, isScheduled, scheduledAt, attachments);
+
+      await logMessage(
+        api,
+        userId,
+        deviceId,
+        currentNumber,
+        message,
+        "delivered",
+        "",
+        type,
+        isScheduled,
+        scheduledAt,
+        attachments
+      );
 
       if (type === "bulk") {
         await new Promise((res) => setTimeout(res, Number(timer) * 1000));
       }
     } catch (error) {
       logger.error(`[${jid}] Send failed: ${error.message}`);
-      await incrementMessageCountRedis(userId);
-      await logMessage(api, userId, deviceId, currentNumber, message, "error", error.message, type, isScheduled, scheduledAt, attachments);
+      await logMessage(
+        api,
+        userId,
+        deviceId,
+        currentNumber,
+        message,
+        "error",
+        error.message,
+        type,
+        isScheduled,
+        scheduledAt,
+        attachments
+      );
     }
   }
 
   await cleanupAttachments(attachments);
 }
 
-async function logMessage(api, userId, deviceId, to, message, status, errorMessage, type, isScheduled, scheduledAt, attachments = []) {
+async function logMessage(
+  api,
+  userId,
+  deviceId,
+  to,
+  message,
+  status,
+  errorMessage,
+  type,
+  isScheduled,
+  scheduledAt,
+  attachments = []
+) {
   const mappedAttachments = attachments.map((file) => {
     const mime = file.mimetype || "";
     let fileType = "document";
