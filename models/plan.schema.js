@@ -36,6 +36,10 @@ const planSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
 });
 
-export const Plan = mongoose.models.Plan || mongoose.model("Plan", planSchema);
+export const Plan =  mongoose.model("Plan", planSchema);

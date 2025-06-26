@@ -6,6 +6,9 @@ const DeviceSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    number:{
+      type:String
+    },
     status: {
       type: String,
       enum: ["connected", "disconnected", "auth_failure"],
