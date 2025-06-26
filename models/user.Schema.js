@@ -85,20 +85,14 @@ const UserSchema = new mongoose.Schema(
       type: [DeviceSchema],
       default: [],
     },
-
-    subscription: {
-      plan: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Plan",
-      },
+    subscriptions: [{
+      plan: { type: mongoose.Schema.Types.ObjectId, ref: "Plan" },
       startDate: Date,
       endDate: Date,
-      usedMessages: {
-        type: Number,
-        default: 0,
-      },
+      usedMessages: { type: Number, default: 0 },
       deviceIds: [String],
-    },
+      isActive: { type: Boolean, default: false } 
+    }],
 
     enableCode: String,
     createdAt: {

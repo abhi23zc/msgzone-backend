@@ -10,7 +10,7 @@ export const createPlan = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
-        data: {}
+        data: {},
       });
     }
 
@@ -19,21 +19,21 @@ export const createPlan = async (req, res) => {
       return res.status(400).json({
         success: false,
         message: "Message limit required for limited plans",
-        data: {}
+        data: {},
       });
     }
 
     const plan = await Plan.create(req.body);
-    res.status(201).json({ 
-      success: true, 
+    res.status(201).json({
+      success: true,
       message: "Plan created successfully",
-      data: { plan }
+      data: { plan },
     });
   } catch (err) {
-    res.status(400).json({ 
-      success: false, 
+    res.status(400).json({
+      success: false,
       message: err.message,
-      data: {}
+      data: {},
     });
   }
 };
@@ -41,16 +41,16 @@ export const createPlan = async (req, res) => {
 export const getAllPlans = async (req, res) => {
   try {
     const plans = await Plan.find().sort({ createdAt: -1 });
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Plans retrieved successfully",
-      data: { plans }
+      data: { plans },
     });
   } catch (err) {
     res.status(500).json({
       success: false,
       message: err.message,
-      data: {}
+      data: {},
     });
   }
 };
@@ -63,35 +63,34 @@ export const updatePlan = async (req, res) => {
         return res.status(400).json({
           success: false,
           message: "Message limit required for limited plans",
-          data: {}
+          data: {},
         });
       }
     }
 
-    const plan = await Plan.findByIdAndUpdate(
-      req.params.id, 
-      req.body,
-      { new: true, runValidators: true }
-    );
+    const plan = await Plan.findByIdAndUpdate(req.params.id, req.body, {
+      new: true,
+      runValidators: true,
+    });
 
     if (!plan) {
       return res.status(404).json({
         success: false,
         message: "Plan not found",
-        data: {}
+        data: {},
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Plan updated successfully",
-      data: { plan }
+      data: { plan },
     });
   } catch (err) {
     res.status(500).json({
       success: false,
       message: err.message,
-      data: {}
+      data: {},
     });
   }
 };
@@ -109,20 +108,20 @@ export const deletePlan = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Plan not found",
-        data: {}
+        data: {},
       });
     }
 
-    res.json({ 
-      success: true, 
+    res.json({
+      success: true,
       message: "Plan deleted successfully",
-      data: {}
+      data: {},
     });
   } catch (err) {
     res.status(500).json({
       success: false,
       message: err.message,
-      data: {}
+      data: {},
     });
   }
 };
@@ -133,51 +132,54 @@ export const assignPlanToUser = async (req, res) => {
 
     const plan = await Plan.findById(planId);
     if (!plan || plan.status !== "active") {
-      return res.status(404).json({ 
-        success: false, 
+      return res.status(404).json({
+        success: false,
         message: "Plan not found or inactive",
-        data: {}
+        data: {},
       });
     }
 
-    const now = new Date();
-    const end = new Date(now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000);
-
-    const subscriptionData = {
-      plan: plan._id,
-      startDate: now,
-      endDate: end,
-      usedMessages: 0,
-      deviceIds: [],
-      messageLimit: plan.type === "limited" ? plan.messageLimit : null,
-      deviceLimit: plan.deviceLimit
-    };
-
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { $set: { subscription: subscriptionData } },
-      { new: true }
-    );
-
+    const user = await User.findById(userId).populate("subscriptions.plan");
     if (!user) {
       return res.status(404).json({
         success: false,
         message: "User not found",
-        data: {}
+        data: {},
       });
     }
 
-    return res.json({ 
-      success: true, 
-      message: "Plan assigned successfully",
-      data: { user }
+    const hasActive = user.subscriptions?.some((sub) => sub.isActive);
+
+    const now = new Date();
+    const end = new Date(
+      now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000
+    );
+
+    const subscriptionData = {
+      plan: plan._id,
+      startDate: hasActive ? null : now,
+      endDate: hasActive ? null : end,
+      isActive: !hasActive,
+      usedMessages: 0,
+      deviceIds: [],
+    };
+
+    user.subscriptions.push(subscriptionData);
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: hasActive
+        ? "Plan added to queue and will activate later"
+        : "Plan assigned and activated successfully",
+      data: { user },
     });
   } catch (error) {
     console.error("Assign Plan Error:", error);
-    res.status(500).json({ 
-      success: false, 
+    res.status(500).json({
+      success: false,
       message: "Server error",
-      data: {}
+      data: {},
     });
   }
 };

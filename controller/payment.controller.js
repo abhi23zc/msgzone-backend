@@ -51,12 +51,15 @@ export const createRazorpayOrder = async (req, res) => {
 };
 
 // POST /verify-payment
+
 export const verifyPayment = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } =
     req.body;
+
   const userId = req.user?.userId;
 
   try {
+    // Verify Razorpay signature
     const hmac = crypto.createHmac(
       "sha256",
       process.env.RAZORPAY_KEY_SECRET || "MfDx0p5Ngmqb2G9Vk4GZeSMe"
@@ -81,25 +84,47 @@ export const verifyPayment = async (req, res) => {
       plan: planId,
     });
 
-    // Activate subscription
+    // Find plan
     const plan = await Plan.findById(planId);
-    const startDate = new Date();
-    const endDate = new Date();
-    endDate.setDate(startDate.getDate() + plan.durationDays);
+    if (!plan) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Plan not found" });
+    }
 
-    await User.findByIdAndUpdate(userId, {
-      subscription: {
-        plan: plan._id,
-        startDate,
-        endDate,
-        usedMessages: 0,
-        deviceIds: [],
-      },
-    });
+    // Find user
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+    }
+
+    const hasActive = user.subscriptions?.some((sub) => sub.isActive);
+
+    const now = new Date();
+    const end = new Date(
+      now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000
+    );
+
+    const newSubscription = {
+      plan: plan._id,
+      startDate: hasActive ? null : now,
+      endDate: hasActive ? null : end,
+      usedMessages: 0,
+      deviceIds: [],
+      isActive: !hasActive,
+    };
+
+    // Push to subscriptions array
+    user.subscriptions.push(newSubscription);
+    await user.save();
 
     return res.status(200).json({
       success: true,
-      message: "Payment verified and subscription activated",
+      message: hasActive
+        ? "Payment Succeded"
+        : "Payment verified. Plan activated successfully.",
       data: null,
     });
   } catch (err) {
@@ -111,7 +136,6 @@ export const verifyPayment = async (req, res) => {
     });
   }
 };
-
 // GET /admin/payments
 export const getAllPayments = async (req, res) => {
   try {
