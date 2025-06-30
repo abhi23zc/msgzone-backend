@@ -8,21 +8,23 @@ export const canSendMessage = async (userId) => {
   }
 
   // Find active subscription or next available subscription
-  let activeSub = user.subscriptions?.find((sub) => sub.isActive);
+  let activeSub = user.subscriptions?.find((sub) => sub.status === "active");
   const now = Date.now();
 
   // If active subscription is expired, try to activate next available subscription
   if (activeSub && activeSub.endDate && now > activeSub.endDate.getTime()) {
     // Deactivate current subscription
-    activeSub.isActive = false;
+
+    activeSub.status = "expired";
 
     // Find next valid subscription that hasn't started yet
     const nextSub = user.subscriptions?.find(
-      (sub) => !sub.isActive && !sub.startDate
+      (sub) => sub.status === "inactive" && !sub.startDate
     );
 
     if (nextSub) {
       nextSub.isActive = true;
+      nextSub.status = "active";
       nextSub.startDate = new Date();
       nextSub.endDate = new Date(
         Date.now() + nextSub.plan.durationDays * 24 * 60 * 60 * 1000
@@ -35,11 +37,12 @@ export const canSendMessage = async (userId) => {
   // If no active subscription, try to activate an available one
   if (!activeSub) {
     const availableSub = user.subscriptions?.find(
-      (sub) => !sub.isActive && !sub.startDate && !sub.endDate
+      (sub) => sub.status === "inactive" && !sub.startDate && !sub.endDate
     );
 
     if (availableSub) {
-      availableSub.isActive = true;
+      availableSub.status = "active";
+
       availableSub.startDate = new Date();
       availableSub.endDate = new Date(
         Date.now() + availableSub.plan.durationDays * 24 * 60 * 60 * 1000
@@ -70,7 +73,7 @@ export const incrementMessageCount = async (userId) => {
   const user = await User.findById(userId);
   if (!user) return;
 
-  const activeSub = user.subscriptions?.find((sub) => sub.isActive);
+  const activeSub = user.subscriptions?.find((sub) => sub.status === "active");
 
   if (activeSub) {
     activeSub.usedMessages = (activeSub.usedMessages || 0) + 1;

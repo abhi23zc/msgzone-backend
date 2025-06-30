@@ -1,6 +1,49 @@
 import { MessageLog } from "../models/_message.log.schema.js";
 
 // ✅ Get all messages for the current user
+// export const getAllMessages = async (req, res) => {
+//   try {
+//     const userId = req?.user?.userId;
+//     const limit = parseInt(req.query.limit) || 50;
+//     const page = parseInt(req.query.page) || 1;
+//     const skip = (page - 1) * limit;
+
+//     const { from, to } = req.query;
+
+//     // Build query object
+//     const query = { userId };
+
+//     if (from || to) {
+//       query.createdAt = {};
+//       if (from) query.createdAt.$gte = new Date(from);
+//       if (to) query.createdAt.$lte = new Date(to);
+//     }
+
+//     const totalMessages = await MessageLog.countDocuments(query);
+
+//     const messageLogs = await MessageLog.find(query)
+//       .sort({ createdAt: -1 })
+//       .skip(skip)
+//       .limit(limit);
+
+//     return res.json({
+//       success: true,
+//       data: messageLogs,
+//       currentPage: page,
+//       totalPages: Math.ceil(totalMessages / limit),
+//       totalMessages,
+//       message: "Messages retrieved successfully",
+//     });
+//   } catch (error) {
+//     console.error("Error getting messages:", error);
+//     return res.status(500).json({
+//       success: false,
+//       data: null,
+//       message: "Server error occurred",
+//     });
+//   }
+// };
+
 export const getAllMessages = async (req, res) => {
   try {
     const userId = req?.user?.userId;
@@ -8,15 +51,30 @@ export const getAllMessages = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const skip = (page - 1) * limit;
 
-    const { from, to } = req.query;
+    const { from, to, status, search } = req.query;
 
-    // Build query object
+    // Base query for this user
     const query = { userId };
 
+    // Date filter
     if (from || to) {
       query.createdAt = {};
       if (from) query.createdAt.$gte = new Date(from);
       if (to) query.createdAt.$lte = new Date(to);
+    }
+
+    // Status filter
+    if (status && status !== "all") {
+      query.status = status;
+    }
+
+    // Search filter (in sendFrom, sendTo, or text)
+    if (search) {
+      query.$or = [
+        { sendFrom: { $regex: search, $options: "i" } },
+        { sendTo: { $regex: search, $options: "i" } },
+        { text: { $regex: search, $options: "i" } },
+      ];
     }
 
     const totalMessages = await MessageLog.countDocuments(query);

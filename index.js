@@ -12,6 +12,7 @@ import 'dotenv/config';
 import { restoreSessions } from "./sessionStart.js";
 import cron from "node-cron"; 
 import planRouter from './routes/plan.route.js'
+import morgan from 'morgan'
 
 const PORT = process.env.PORT|| 8080;
 const app = express();
@@ -19,6 +20,7 @@ const app = express();
 app.use(
   cors({
     origin: [
+      "http://192.168.1.8:3000",
       "http://localhost:3000",
       "https://msgzone.vercel.app",
       "https://whatsapp.webifyit.in",
@@ -31,6 +33,7 @@ app.use(
 );
 
 app.use(cookieParser());
+app.use(morgan('dev'));
 
 connectDB();
 app.use(express.json());
@@ -39,6 +42,7 @@ app.use("/api/v1/wp", whatsappRouter);
 app.use("/api/v1/wp", dashboardRouter);
 app.use("/api/v1/dev", whatsappApiRouter);
 app.use("/api/v1/plan", planRouter)
+
 
 // 👩🏻‍💻Admin Routes
 app.use("/api/v1/admin", adminRouter)

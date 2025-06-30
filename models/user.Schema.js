@@ -91,7 +91,8 @@ const UserSchema = new mongoose.Schema(
       endDate: Date,
       usedMessages: { type: Number, default: 0 },
       deviceIds: [String],
-      isActive: { type: Boolean, default: false } 
+      isActive: { type: Boolean, default: false },
+      status: { type: String, enum: ["active", "inactive", "expired"], default: "inactive" } 
     }],
 
     enableCode: String,

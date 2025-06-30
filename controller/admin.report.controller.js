@@ -65,31 +65,50 @@ export const getMessageReportList = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
-    const { from, to } = req.query;
+    const { from, to, status, search } = req.query;
 
-    // Fetch all user IDs created by the admin
     const userIds = await User.find({ createdBy: adminId }).distinct("_id");
 
-    // Build query object
     const query = { userId: { $in: userIds } };
 
+    // Date filtering
     if (from || to) {
       query.createdAt = {};
       if (from) query.createdAt.$gte = new Date(from);
       if (to) query.createdAt.$lte = new Date(to);
     }
 
-    // Get total count for pagination
+    // Status filtering
+    if (status && status !== "all") {
+      query.status = status.toLowerCase(); // store all lowercase in DB
+    }
+
+    if (search) {
+      const searchRegex = new RegExp(search, "i");
+      query.$or = [
+        { sendTo: searchRegex },
+        { text: searchRegex },
+      ];
+    }
+
     const totalCount = await MessageLog.countDocuments(query);
 
-    // Fetch messages with pagination
     const messages = await MessageLog.find(query)
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
       .populate("userId", "name");
+      
+    let filteredMessages = messages;
 
-    const results = messages.map((msg) => {
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredMessages = messages.filter((msg) =>
+        msg.userId?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    const results = filteredMessages.map((msg) => {
       const sent = msg.sentAt || msg.createdAt;
       return {
         recipient: msg.sendTo,
@@ -112,19 +131,20 @@ export const getMessageReportList = async (req, res) => {
           total: totalCount,
           page,
           limit,
-          totalPages: Math.ceil(totalCount / limit)
-        }
-      }
+          totalPages: Math.ceil(totalCount / limit),
+        },
+      },
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
       status: false,
       message: "Failed to fetch message reports",
-      data: {}
+      data: {},
     });
   }
 };
+
 
 function capitalize(str) {
   return str[0].toUpperCase() + str.slice(1);
