@@ -25,19 +25,18 @@ export const createRazorpayOrder = async (req, res) => {
     }
 
     const order = await razorpay.orders.create({
-      amount: plan.price * 100, 
+      amount: plan.price * 100,
       currency: plan.currency || "INR",
       receipt: `receipt_${Date.now()}`,
     });
 
-    
     return res.status(200).json({
       success: true,
       message: "Order created successfully",
       data: {
         orderId: order.id,
-        paymentId: null, 
-        razorpay_signature: null, 
+        paymentId: null,
+        razorpay_signature: null,
         amount: order.amount,
         currency: order.currency,
       },
@@ -55,7 +54,7 @@ export const createRazorpayOrder = async (req, res) => {
 export const verifyPayment = async (req, res) => {
   const { razorpay_order_id, razorpay_payment_id, razorpay_signature, planId } =
     req.body;
-console.log("Payment Details", req.body)
+  console.log("Payment Details", req.body);
   const userId = req.user?.userId;
 
   try {
@@ -83,7 +82,7 @@ console.log("Payment Details", req.body)
       razorpay_signature,
       user: userId,
       plan: planId,
-      status: "approved" // Razorpay payments are auto-approved
+      status: "approved", // Razorpay payments are auto-approved
     });
 
     // Find plan
@@ -163,6 +162,7 @@ export const getAllPayments = async (req, res) => {
 // GET /user/payments
 export const getUserPayments = async (req, res) => {
   const userId = req.user?.userId;
+   const BASE_URL = `${req.protocol}://${req.get('host')}`;
 
   try {
     const payments = await Payment.find({ user: userId })
@@ -177,33 +177,44 @@ export const getUserPayments = async (req, res) => {
         status: 1,
         utrNumber: 1,
         screenshotUrl: 1,
-        date: 1 // Changed from createdAt to date per schema
+        date: 1, // Changed from createdAt to date per schema
       });
 
     return res.status(200).json({
       success: true,
       message: "User payments retrieved successfully",
-      data: { 
-        payments: payments.map(payment => ({
+      data: {
+        payments: payments.map((payment) => ({
           id: payment._id,
-          orderId: payment.paymentMode === 'razorpay' ? payment.razorpay_order_id : null,
-          paymentId: payment.paymentMode === 'razorpay' ? payment.razorpay_payment_id : null,
-          signature: payment.paymentMode === 'razorpay' ? payment.razorpay_signature : null,
+          orderId:
+            payment.paymentMode === "razorpay"
+              ? payment.razorpay_order_id
+              : null,
+          paymentId:
+            payment.paymentMode === "razorpay"
+              ? payment.razorpay_payment_id
+              : null,
+          signature:
+            payment.paymentMode === "razorpay"
+              ? payment.razorpay_signature
+              : null,
           mode: payment.paymentMode,
           status: payment.status,
-          utrNumber: payment.paymentMode === 'manual' ? payment.utrNumber : null,
-          screenshot: payment.paymentMode === 'manual' ? payment.screenshotUrl : null,
+          utrNumber:
+            payment.paymentMode === "manual" ? payment.utrNumber : null,
+          screenshot:
+            payment.paymentMode === "manual" ? BASE_URL + "/" +payment.screenshotUrl : null,
           date: payment.date,
           plan: payment.plan,
-          user: payment.user
-        }))
+          user: payment.user,
+        })),
       },
     });
   } catch (err) {
     console.error("Get user payments error:", err);
     return res.status(500).json({
       success: false,
-      message: "Server error", 
+      message: "Server error",
       data: {},
     });
   }
@@ -211,7 +222,17 @@ export const getUserPayments = async (req, res) => {
 
 // Manual Payment
 export const createManualPayment = async (req, res) => {
-  const { planId, utrNumber, screenshotUrl } = req.body;
+  const planId = req?.body?.planId;
+  const utrNumber = req?.body?.utrNumber;
+  const screenshot = req?.file?.path;
+  console.log(planId, utrNumber, screenshot)
+  if(!planId || !utrNumber || !screenshot){
+    return res.status(400).json({
+      success: false,
+      message: "All fields are required",
+      data: {},
+    })
+  }
   const userId = req.user?.userId;
 
   try {
@@ -225,7 +246,7 @@ export const createManualPayment = async (req, res) => {
     await Payment.create({
       paymentMode: "manual",
       utrNumber,
-      screenshotUrl,
+      screenshotUrl: screenshot || "",
       user: userId,
       plan: planId,
       status: "pending",
@@ -321,27 +342,97 @@ export const rejectManualPayment = async (req, res) => {
   }
 };
 
-// GET /admin/pending-manual-payments
-export const getPendingManualPayments = async (req, res) => {
+// GET /admin/payments-stats
+export const getPaymentsStats = async (req, res) => {
   try {
-    const payments = await Payment.find({
-      paymentMode: "manual",
-      status: "pending",
-    })
-      .populate("user", "name email")
-      .populate("plan", "name price durationDays");
+    // Get all payments with their status counts
+    const [payments, paymentStats] = await Promise.all([
+      Payment.find()
+        .populate("user", "name email")
+        .populate("plan", "name price durationDays deviceLimit messageLimit")
+        .sort({ date: -1 }),
+      Payment.aggregate([
+        {
+          $group: {
+            _id: null,
+            totalPayments: { $sum: 1 },
+            razorpayPayments: {
+              $sum: { $cond: [{ $eq: ["$paymentMode", "razorpay"] }, 1, 0] }
+            },
+            manualPayments: {
+              $sum: { $cond: [{ $eq: ["$paymentMode", "manual"] }, 1, 0] }
+            },
+            approvedPayments: {
+              $sum: { $cond: [{ $eq: ["$status", "approved"] }, 1, 0] }
+            },
+            pendingPayments: {
+              $sum: { $cond: [{ $eq: ["$status", "pending"] }, 1, 0] }
+            },
+            rejectedPayments: {
+              $sum: { $cond: [{ $eq: ["$status", "rejected"] }, 1, 0] }
+            },
+            totalAmount: {
+              $sum: {
+                $cond: [
+                  { $eq: ["$status", "approved"] },
+                  { $toDouble: "$plan.price" },
+                  0
+                ]
+              }
+            }
+          }
+        }
+      ])
+    ]);
+
+    // Format payment stats
+    const stats = paymentStats[0] || {
+      totalPayments: 0,
+      razorpayPayments: 0,
+      manualPayments: 0,
+      approvedPayments: 0,
+      pendingPayments: 0,
+      rejectedPayments: 0,
+      totalAmount: 0
+    };
+     const BASE_URL = `${req.protocol}://${req.get('host')}`;
 
     return res.status(200).json({
       success: true,
-      message: "Pending manual payments retrieved successfully",
-      data: { payments },
+      message: "All payments retrieved successfully",
+      data: {
+        payments: payments.map(payment => ({
+          id: payment._id,
+          user: payment.user,
+          plan: payment.plan,
+          paymentMode: payment.paymentMode,
+          status: payment.status,
+          // Razorpay specific fields
+          razorpay_order_id: payment.paymentMode === "razorpay" ? payment.razorpay_order_id : null,
+          razorpay_payment_id: payment.paymentMode === "razorpay" ? payment.razorpay_payment_id : null,
+          razorpay_signature: payment.paymentMode === "razorpay" ? payment.razorpay_signature : null,
+          // Manual payment specific fields
+          utrNumber: payment.paymentMode === "manual" ? payment.utrNumber : null,
+          screenshotUrl: payment.paymentMode === "manual" ? BASE_URL+"/"+ payment.screenshotUrl : null,
+          date: payment.date
+        })),
+        stats: {
+          total: stats.totalPayments,
+          razorpay: stats.razorpayPayments,
+          manual: stats.manualPayments,
+          approved: stats.approvedPayments,
+          pending: stats.pendingPayments,
+          rejected: stats.rejectedPayments,
+          totalAmount: stats.totalAmount
+        }
+      }
     });
   } catch (err) {
-    console.error("Error fetching pending manual payments:", err);
+    console.error("Error fetching payments:", err);
     return res.status(500).json({
       success: false,
       message: "Server error",
-      data: {},
+      data: {}
     });
   }
 };

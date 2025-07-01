@@ -6,11 +6,12 @@ import {
   createManualPayment,
   approveManualPayment,
   rejectManualPayment,
-  getPendingManualPayments,
+  getPaymentsStats,
   getUserPayments
 } from "../controller/payment.controller.js";
 import { isAuthenticated } from "../middleware/isAuthenticated.js";
 import { isAdmin } from "../middleware/authenticateAdmin.js";
+import { upload } from "../utils/multer.config.js";
 
 const router = express.Router();
 
@@ -27,7 +28,7 @@ router.get("/user-payments", isAuthenticated, getUserPayments);
 router.get("/admin/payments", isAuthenticated, isAdmin, getAllPayments);
 
 // ✅Create Manual payment
-router.post("/manual-payment", isAuthenticated, createManualPayment);
+router.post("/manual-payment", isAuthenticated, upload.single('screenshot'), createManualPayment);
 
 // ✅Approve Manual Payment
 router.put(
@@ -45,7 +46,7 @@ router.put(
   rejectManualPayment
 );
 
-// ✅ Get Pending Manual Payments
-router.get("/admin/pending-manual-payments", isAuthenticated, isAdmin, getPendingManualPayments);
+// ✅ Get All Payments
+router.get("/admin", isAuthenticated, isAdmin, getPaymentsStats);
 
 export default router;

@@ -11,7 +11,10 @@ import {
   createClient,
 } from "../controller/_whatsapp.controller.js";
 import { RateLimiterMemory } from "rate-limiter-flexible";
-import { incrementMessageCount } from "../middleware/sendMessage.js";
+import {
+  canSendMessage,
+  incrementMessageCount,
+} from "../middleware/sendMessage.js";
 
 dotenv.config();
 
@@ -21,8 +24,10 @@ const MAX_FILE_SIZE_MB = 10;
 async function processMessageJob(job) {
   const {
     api,
+    req,
     userId,
     deviceId,
+    enableCode,
     type = "single",
     numbers = [],
     number,
@@ -67,11 +72,16 @@ async function processMessageJob(job) {
   const resolvedNumbers = type === "bulk" ? numbers : [number];
 
   for (let idx = 0; idx < resolvedNumbers.length; idx++) {
+    const check = await canSendMessage(req, userId);
+    if (!check.allowed) {
+      return res.status(403).json({ success: false, message: check.reason });
+    }
+     await incrementMessageCount(userId);
     const currentNumber = resolvedNumbers[idx];
-    const jid = currentNumber.includes("@s.whatsapp.net")
-      ? currentNumber
-      : `${currentNumber}@s.whatsapp.net`;
-
+    const formattedNumber = enableCode ? `91${currentNumber}` : currentNumber;
+    const jid = formattedNumber.includes("@s.whatsapp.net")
+      ? formattedNumber
+      : `${formattedNumber}@s.whatsapp.net`;
     try {
       // Rate limiting
       let consumed = false;
@@ -181,6 +191,7 @@ async function processMessageJob(job) {
         scheduledAt,
         attachments
       );
+
 
       if (type === "bulk") {
         await new Promise((res) => setTimeout(res, Number(timer) * 1000));

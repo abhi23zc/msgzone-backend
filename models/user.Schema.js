@@ -95,7 +95,7 @@ const UserSchema = new mongoose.Schema(
       status: { type: String, enum: ["active", "inactive", "expired"], default: "inactive" } 
     }],
 
-    enableCode: String,
+    enableCode: Boolean,
     createdAt: {
       type: Date,
       default: Date.now,

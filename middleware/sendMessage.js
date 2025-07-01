@@ -1,11 +1,12 @@
 import { User } from "../models/user.Schema.js";
 
-export const canSendMessage = async (userId) => {
+export const canSendMessage = async (req, userId) => {
   const user = await User.findById(userId).populate("subscriptions.plan");
-
   if (!user) {
     return { allowed: false, reason: "User not found" };
   }
+
+  req.enableCode = user?.enableCode;
 
   // Find active subscription or next available subscription
   let activeSub = user.subscriptions?.find((sub) => sub.status === "active");

@@ -34,9 +34,12 @@ app.use(
 
 app.use(cookieParser());
 app.use(morgan('dev'));
+// Make uploads folder public
+app.use('/uploads', express.static('uploads'));
 
 connectDB();
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/wp", whatsappRouter);
 app.use("/api/v1/wp", dashboardRouter);

@@ -7,7 +7,7 @@ let NODE_ENV = "development";
 
 function generateToken(user) {
   return jwt.sign(
-    { userId: user._id, role: user.role },
+    { userId: user._id, role: user.role},
     process.env.JWT_SECRET || "abhi@321",
     { expiresIn: "7d" }
   );
@@ -347,6 +347,34 @@ export const logout = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Server error.",
+      data: null,
+    });
+  }
+};
+
+export const enable91 = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId);
+    // Toggle enableCode value
+    
+    user.enableCode = !user.enableCode;
+    await user.save();
+
+    if (user.enableCode) {
+      return res.status(200).json({
+        success: true,
+        message: "91 enabled successfully.",
+      });
+    }
+    return res.status(200).json({
+      success: true,
+      message: "91 disabled successfully.",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
       data: null,
     });
   }

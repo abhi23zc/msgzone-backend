@@ -36,7 +36,7 @@ export const isApiAuthenticated = async (req, res, next) => {
     await redis.set(redisKey, JSON.stringify({
       userId: keyDoc.userId,
       deviceId: keyDoc.deviceId
-    }), 'EX', 86400); // 24 hours
+    }), 'EX', 1200); // 20 minutes
 
     req.deviceId = keyDoc.deviceId;
     req.userId = keyDoc.userId;
