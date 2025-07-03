@@ -504,7 +504,10 @@ export const sendSingle = async (req, res) => {
       .status(400)
       .json({ status: false, message: "Missing required fields" });
   }
-
+  const check = await canSendMessage(req, userId);
+  if (!check.allowed) {
+    return res.status(403).json({ success: false, message: check.reason });
+  }
   const tempAttachments =
     attachments?.length > 0 &&
     attachments.map((file) => ({
@@ -519,9 +522,8 @@ export const sendSingle = async (req, res) => {
       {
         userId,
         deviceId,
-        enableCode: req.user.enableCode,
         number,
-        req:req.user,
+        req: req.user,
         message: htmlToWhatsapp(message),
         captions,
         attachments: tempAttachments || [],
@@ -536,12 +538,12 @@ export const sendSingle = async (req, res) => {
     console.log("📤 Job added to queue ✅");
     return res
       .status(200)
-      .json({ status: true, message: "Message Sent Succesfully", data: null });
+      .json({ status: true, message: "Message Sent", data: null });
   } catch (error) {
     console.error("❌ Failed to add job to queue:", error.message);
     return res.status(500).json({
       status: false,
-      message: "Failed to queue message",
+      message: "Failed to send message",
       error: error.message,
     });
   }
@@ -566,6 +568,7 @@ export const sendSingleSchedule = async (req, res) => {
       message: "Missing required fields",
     });
   }
+
   const check = await canSendMessage(req, userId);
   if (!check.allowed) {
     return res.status(403).json({ success: false, message: check.reason });
@@ -618,9 +621,8 @@ export const sendSingleSchedule = async (req, res) => {
       {
         userId,
         deviceId,
-        enableCode: req.user.enableCode,
         number,
-        req:req.user,
+        req: req.user,
         message: htmlToWhatsapp(message),
         captions,
         attachments: tempAttachments || [],
@@ -767,6 +769,10 @@ export const sendBulk = async (req, res) => {
         .json({ status: false, message: "Missing required fields" });
     }
 
+    const check = await canSendMessage(req, userId);
+    if (!check.allowed) {
+      return res.status(403).json({ success: false, message: check.reason });
+    }
     const tempAttachments =
       attachments?.length > 0 &&
       attachments.map((file) => ({
@@ -780,8 +786,7 @@ export const sendBulk = async (req, res) => {
       {
         userId,
         deviceId,
-        req:req.user,
-        enableCode: req.user.enableCode,
+        req: req.user,
         numbers,
         message: htmlToWhatsapp(message),
         captions,
@@ -901,9 +906,8 @@ export const sendBulkSchedule = async (req, res) => {
         {
           userId,
           deviceId,
-          enableCode: req.user.enableCode,
           numbers,
-          req:req.user,
+          req: req.user,
           message: htmlToWhatsapp(message),
           captions,
           attachments: tempAttachments || [],
@@ -1004,7 +1008,7 @@ export const sendMessageApi = async (req, res) => {
 
     const number = numberRaw;
     const message = rawMessage;
-    req.user = {}
+    req.user = {};
     try {
       await messageQueue.add(
         "message-queue",
@@ -1012,9 +1016,8 @@ export const sendMessageApi = async (req, res) => {
           api: true,
           userId,
           deviceId,
-          enableCode: req.user.enableCode,
           number,
-          req:req.user,
+          req: req.user,
           message: message,
           captions: [],
           attachments: [],
@@ -1026,7 +1029,7 @@ export const sendMessageApi = async (req, res) => {
           removeOnFail: true,
         }
       );
-    
+
       console.log("📤 Job added to queue ✅");
       return res.status(200).json({
         status: true,

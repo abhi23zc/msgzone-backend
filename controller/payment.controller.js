@@ -114,6 +114,7 @@ export const verifyPayment = async (req, res) => {
       endDate: hasActive ? null : end,
       usedMessages: 0,
       deviceIds: [],
+      status: hasActive ? "inactive" : "active",
       isActive: !hasActive,
     };
 
@@ -298,8 +299,11 @@ export const approveManualPayment = async (req, res) => {
       endDate: hasActive ? null : end,
       usedMessages: 0,
       deviceIds: [],
+       status: hasActive ? "inactive" : "active",
       isActive: !hasActive,
     };
+
+    console.log(newSubscription)
 
     user.subscriptions.push(newSubscription);
     await user.save();

@@ -1,26 +1,17 @@
 import { MessageLog } from "../models/_message.log.schema.js";
 import { User } from "../models/user.Schema.js";
 
+
 export const getMessageReportStats = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+    // Get all non-admin user IDs
+    const nonAdminUserIds = await User.find({ role: { $ne: "admin" } }).distinct("_id");
+    const baseQuery = { userId: { $in: nonAdminUserIds } };
 
-    const totalMessages = await MessageLog.countDocuments({
-      userId: { $in: userIds },
-    });
+    const totalMessages = await MessageLog.countDocuments(baseQuery);
+    const deliveredMessages = await MessageLog.countDocuments({ ...baseQuery, status: "delivered" });
+    const failedMessages = await MessageLog.countDocuments({ ...baseQuery, status: "error" });
 
-    const deliveredMessages = await MessageLog.countDocuments({
-      userId: { $in: userIds },
-      status: "delivered",
-    });
-
-    const failedMessages = await MessageLog.countDocuments({
-      userId: { $in: userIds },
-      status: "error",
-    });
-
-    // Calculate percentage change over last 30 days
     const now = new Date();
     const start30 = new Date(now);
     start30.setDate(start30.getDate() - 30);
@@ -28,12 +19,12 @@ export const getMessageReportStats = async (req, res) => {
     start60.setDate(start60.getDate() - 60);
 
     const last30 = await MessageLog.countDocuments({
-      userId: { $in: userIds },
+      ...baseQuery,
       createdAt: { $gte: start30 },
     });
 
     const prev30 = await MessageLog.countDocuments({
-      userId: { $in: userIds },
+      ...baseQuery,
       createdAt: { $gte: start60, $lt: start30 },
     });
 
@@ -47,29 +38,26 @@ export const getMessageReportStats = async (req, res) => {
         deliveredMessages,
         failedMessages,
         percentChange: percentChange.toFixed(2),
-      }
+      },
     });
   } catch (err) {
     console.error(err);
     return res.status(500).json({
       status: false,
       message: "Failed to fetch report stats",
-      data: {}
+      data: {},
     });
   }
 };
 
 export const getMessageReportList = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
     const { from, to, status, search } = req.query;
 
-    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
-
-    const query = { userId: { $in: userIds } };
+    const query = {};
 
     // Date filtering
     if (from || to) {
@@ -82,6 +70,10 @@ export const getMessageReportList = async (req, res) => {
     if (status && status !== "all") {
       query.status = status.toLowerCase(); // store all lowercase in DB
     }
+
+    // Exclude admin users
+    const nonAdminUserIds = await User.find({ role: { $ne: "admin" } }).distinct("_id");
+    query.userId = { $in: nonAdminUserIds };
 
     if (search) {
       const searchRegex = new RegExp(search, "i");
@@ -97,8 +89,8 @@ export const getMessageReportList = async (req, res) => {
       .skip(skip)
       .limit(limit)
       .sort({ createdAt: -1 })
-      .populate("userId", "name");
-      
+      .populate("userId", "name role");
+
     let filteredMessages = messages;
 
     if (search) {
@@ -107,6 +99,9 @@ export const getMessageReportList = async (req, res) => {
         msg.userId?.name?.toLowerCase().includes(searchLower)
       );
     }
+
+    // Filter out any message where user is admin (extra safety)
+    filteredMessages = filteredMessages.filter(msg => msg.userId?.role !== "admin");
 
     const results = filteredMessages.map((msg) => {
       const sent = msg.sentAt || msg.createdAt;
@@ -145,7 +140,7 @@ export const getMessageReportList = async (req, res) => {
   }
 };
 
-
 function capitalize(str) {
   return str[0].toUpperCase() + str.slice(1);
 }
+

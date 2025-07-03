@@ -27,7 +27,6 @@ async function processMessageJob(job) {
     req,
     userId,
     deviceId,
-    enableCode,
     type = "single",
     numbers = [],
     number,
@@ -72,12 +71,29 @@ async function processMessageJob(job) {
   const resolvedNumbers = type === "bulk" ? numbers : [number];
 
   for (let idx = 0; idx < resolvedNumbers.length; idx++) {
+    const currentNumber = resolvedNumbers[idx];
     const check = await canSendMessage(req, userId);
     if (!check.allowed) {
-      return res.status(403).json({ success: false, message: check.reason });
+      if (!check.allowed) {
+        await logMessage(
+          api,
+          userId,
+          deviceId,
+          currentNumber,
+          message,
+          "error",
+          check.reason,
+          type,
+          isScheduled,
+          scheduledAt,
+          attachments
+        );
+        continue;
+      }
     }
-     await incrementMessageCount(userId);
-    const currentNumber = resolvedNumbers[idx];
+    const enableCode = req?.enableCode || false;
+    await incrementMessageCount(userId);
+
     const formattedNumber = enableCode ? `91${currentNumber}` : currentNumber;
     const jid = formattedNumber.includes("@s.whatsapp.net")
       ? formattedNumber
@@ -191,7 +207,6 @@ async function processMessageJob(job) {
         scheduledAt,
         attachments
       );
-
 
       if (type === "bulk") {
         await new Promise((res) => setTimeout(res, Number(timer) * 1000));

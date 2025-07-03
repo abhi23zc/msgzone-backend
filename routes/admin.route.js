@@ -45,7 +45,7 @@ router.get("/reports/list", isAuthenticated, isAdmin,getMessageReportList);
 
 // ✅ Plan Management
 router.post("/plans", isAuthenticated, isAdmin, createPlan);
-router.get("/plans", isAuthenticated, isAdmin, getAllPlans);
+router.get("/plans", isAuthenticated, getAllPlans);
 router.put("/plans/:id", isAuthenticated, isAdmin, updatePlan);
 router.delete("/plans/:id", isAuthenticated, isAdmin, deletePlan);
 

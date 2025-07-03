@@ -4,20 +4,18 @@ import { ActivityLog } from "../models/activity.Schma.js";
 
 export const getDashboardStats = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
+    const userId = req?.user?.userId;
 
-    const totalUsers = await User.countDocuments({
-      createdBy: adminId,
-    });
+    const totalUsers = await User.countDocuments({ role: "user" });
     const activeUsers = await User.countDocuments({
+      role: "user",
       isActive: true,
-      createdBy: adminId,
     });
     const dormantAccounts = await User.countDocuments({
+      role: "user", 
       isActive: false,
-      createdBy: adminId,
     });
-    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+    const userIds = await User.find({ role: "user" }).distinct("_id");
 
     const totalMessages = await MessageLog.countDocuments({
       userId: { $in: userIds },
@@ -47,8 +45,8 @@ export const getDashboardStats = async (req, res) => {
 
 export const getWeeklyMessageStats = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+    const userId = req?.user?.userId;
+    const userIds = await User.find({ role: "user" }).distinct("_id");
     const today = new Date();
 
     const last7Days = [...Array(7)].map((_, i) => {
@@ -93,7 +91,7 @@ export const getWeeklyMessageStats = async (req, res) => {
 
 export const getUserGrowthStats = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
+    const userId = req?.user?.userId;
     const today = new Date();
 
     const last7Days = [...Array(7)].map((_, i) => {
@@ -113,7 +111,7 @@ export const getUserGrowthStats = async (req, res) => {
         nextDate.setUTCDate(date.getUTCDate() + 1);
 
         const count = await User.countDocuments({
-          createdBy: adminId,
+          role: "user",
           createdAt: { $gte: date, $lt: nextDate },
         });
 
@@ -138,8 +136,8 @@ export const getUserGrowthStats = async (req, res) => {
 
 export const getLiveActivity = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const userIds = await User.find({ createdBy: adminId }).distinct("_id");
+    const userId = req?.user?.userId;
+    const userIds = await User.find({ role: "user" }).distinct("_id");
 
     const activities = await ActivityLog.find({ userId: { $in: userIds } })
       .sort({ createdAt: -1 })

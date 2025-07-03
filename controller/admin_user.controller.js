@@ -3,9 +3,8 @@ import { User } from "../models/user.Schema.js";
 
 export const getUserStats = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const total = await User.countDocuments({ createdBy: adminId });
-    const active = await User.countDocuments({ createdBy: adminId, isActive: true });
+    const total = await User.countDocuments({ role: "user" });
+    const active = await User.countDocuments({ role: "user", isActive: true });
     const inactive = total - active;
 
     res.json({
@@ -25,34 +24,49 @@ export const getUserStats = async (req, res) => {
 
 export const getAllUsers = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const users = await User.find({ createdBy: adminId }).lean();
+    const users = await User.find({ role: "user" })
+      .populate('subscriptions.plan')
 
-    const withUsage = await Promise.all(
+
+    const formattedUsers = await Promise.all(
       users.map(async (user) => {
-        const msgCount = await MessageLog.countDocuments({ userId: user._id });
+        const messagesSent = await MessageLog.countDocuments({ userId: user._id });
+        
+        // Get active subscription if exists
+        const activeSubscription = user.subscriptions?.find(sub => sub.status === "active");
+
         return {
           _id: user._id,
           name: user.name,
           email: user.email,
-          whatsappNumber: user.whatsappNumber,
-          password:user.password,
+          phone: user.whatsappNumber,
+          businessName: user.businessName,
+          alternateNumber: user.alternateNumber,
+          address: user.address,
           role: user.role,
           isActive: user.isActive,
           isBlocked: user.isBlocked,
           isVerified: user.isVerified,
-          role: user.role,
-          devices : user.devices, //array of devices
+          profilePhoto: user.profilePhoto,
+          devices: user.devices.map(device => ({
+            deviceId: device.deviceId,
+            number: device.number,
+            status: device.status,
+            lastConnected: device.lastConnected
+          })),
           createdAt: user.createdAt,
-          plan: {
-            name: user.plan?.name || "Basic",
-            expiresAt: user.plan?.expiresAt || "2025-12-31",
-            limit: user.plan?.limit || 1000,
-          },
+          lastLogin: user.lastLogin,
+          plan: activeSubscription ? {
+            name: activeSubscription.plan?.name || 'Default',
+            startDate: activeSubscription.startDate,
+            expiresAt: activeSubscription.endDate,
+            deviceIds: activeSubscription.deviceIds,
+            usedMessages: activeSubscription.usedMessages
+          } : null,
           usage: {
-            messagesSent: msgCount,
-            messagesLimit: user.plan?.limit || 1000,
-          },
+            messagesSent,
+            messagesLimit: activeSubscription?.plan?.messageLimit || 0
+          }
         };
       })
     );
@@ -60,7 +74,7 @@ export const getAllUsers = async (req, res) => {
     res.json({
       status: true,
       message: "Users fetched successfully",
-      data: withUsage
+      data: formattedUsers
     });
   } catch (err) {
     console.log(err);
@@ -74,9 +88,7 @@ export const getAllUsers = async (req, res) => {
 
 export const createUser = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    console.log(req.body)
-    const { name, whatsappNumber, email, password } = req.body;
+    const { name, whatsappNumber, email, password, businessName } = req.body;
 
     if (!name || !whatsappNumber || !email || !password) {
       return res.status(400).json({
@@ -88,6 +100,7 @@ export const createUser = async (req, res) => {
 
     const existingUser = await User.findOne({
       $or: [{ email }, { whatsappNumber }],
+      role: "user"
     });
 
     if (existingUser) {
@@ -100,8 +113,9 @@ export const createUser = async (req, res) => {
 
     const user = await User.create({
       ...req.body,
+      role: "user",
       isVerified: true,
-      createdBy: adminId,
+      createdBy: req.user._id
     });
 
     const { password: _, ...newUser } = user.toObject();
@@ -123,24 +137,28 @@ export const createUser = async (req, res) => {
 
 export const updateUser = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const user = await User.findOne({ _id: req.params.id, createdBy: adminId });
+    const user = await User.findOne({ _id: req.params.id, role: "user" });
 
     if (!user) {
       return res.status(404).json({
         status: false,
-        message: "User not found or unauthorized",
+        message: "User not found",
         data: null
       });
     }
 
+    // Prevent role modification
+    delete req.body.role;
+    
     Object.assign(user, req.body);
     const updatedUser = await user.save();
+
+    const { password: _, ...userData } = updatedUser.toObject();
 
     res.json({
       status: true,
       message: "User updated successfully",
-      data: updatedUser
+      data: userData
     });
   } catch (err) {
     console.log(err)
@@ -154,13 +172,15 @@ export const updateUser = async (req, res) => {
 
 export const deleteUser = async (req, res) => {
   try {
-    const adminId = req?.user?.userId;
-    const user = await User.findOneAndDelete({ _id: req.params.id, createdBy: adminId });
+    const user = await User.findOneAndDelete({ 
+      _id: req.params.id,
+      role: "user"
+    });
 
     if (!user) {
       return res.status(404).json({
         status: false,
-        message: "User not found or unauthorized",
+        message: "User not found",
         data: null
       });
     }

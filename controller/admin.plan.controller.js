@@ -160,6 +160,7 @@ export const assignPlanToUser = async (req, res) => {
       startDate: hasActive ? null : now,
       endDate: hasActive ? null : end,
       isActive: !hasActive,
+       status: hasActive ? "inactive" : "active",
       usedMessages: 0,
       deviceIds: [],
     };
