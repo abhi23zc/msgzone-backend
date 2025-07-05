@@ -40,7 +40,7 @@ export const createPlan = async (req, res) => {
 
 export const getAllPlans = async (req, res) => {
   try {
-    const plans = await Plan.find().sort({ createdAt: -1 });
+    const plans = await Plan.find().sort({ price: -1 });
     res.json({
       success: true,
       message: "Plans retrieved successfully",

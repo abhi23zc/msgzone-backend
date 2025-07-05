@@ -3,11 +3,11 @@ import jwt from "jsonwebtoken";
 import { sendOtpEmail } from "../utils/sendEmail.js";
 import { emailQueue } from "../utils/EmailQueue.js";
 
-let NODE_ENV = "development";
+let NODE_ENV = "production";
 
 function generateToken(user) {
   return jwt.sign(
-    { userId: user._id, role: user.role},
+    { userId: user._id, role: user.role },
     process.env.JWT_SECRET || "abhi@321",
     { expiresIn: "7d" }
   );
@@ -16,6 +16,7 @@ function generateToken(user) {
 export const login = async (req, res) => {
   const { email, password } = req.body;
 
+  const host = req.hostname;
   if (!email || !password) {
     return res.status(400).json({
       success: false,
@@ -62,14 +63,25 @@ export const login = async (req, res) => {
 
     if (NODE_ENV === "production") {
       // ✅ For production
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-        path: "/",
-      });
+      if (host.endsWith(".webifyit.in")) {
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          domain: ".webifyit.in",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          path: "/",
+        });
+      } else if (host.endsWith(".msgzone.live")) {
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          domain: ".msgzone.live",
+          maxAge: 7 * 24 * 60 * 60 * 1000,
+          path: "/",
+        });
+      }
     } else {
       // ☑️ For development
       res.cookie("token", token, {
@@ -239,22 +251,30 @@ export const verifyOtp = async (req, res) => {
   await user.save();
 
   const token = generateToken(user);
-  if (NODE_ENV == "production") {
-    // ✅ For production
+  if (NODE_ENV === "production") {
+    const host = req.hostname;
+
+    let domain = ".webifyit.in"; // default domain
+    if (host.endsWith(".msgzone.live")) {
+      domain = ".msgzone.live";
+      
+    }
+    // Add more domains if needed
+
     res.cookie("token", token, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      domain: ".webifyit.in", // ⬅️ This allows sharing across all subdomains
-      maxAge: 7 * 24 * 60 * 60 * 1000,
+      domain, // dynamically assigned
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/",
     });
   } else {
-    // ☑️ For development
+    // Development environment (e.g., localhost)
     res.cookie("token", token, {
       httpOnly: true,
-      secure: false, // NO secure on localhost HTTP
-      sameSite: "lax", // Use "lax" or "strict", but NOT "none" for localhost HTTP
+      secure: false,
+      sameSite: "lax",
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/",
     });
@@ -356,7 +376,7 @@ export const enable91 = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId);
     // Toggle enableCode value
-    
+
     user.enableCode = !user.enableCode;
     await user.save();
 
