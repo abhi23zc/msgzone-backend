@@ -285,8 +285,8 @@ export const createManualPayment = async (req, res) => {
   const planId = req?.body?.planId;
   const utrNumber = req?.body?.utrNumber;
   const screenshot = req?.file?.path;
-  console.log(planId, utrNumber, screenshot)
-  if (!planId || !utrNumber || !screenshot) {
+  // console.log(planId, utrNumber, screenshot)
+  if (!planId || !utrNumber) {
     return res.status(400).json({
       success: false,
       message: "All fields are required",
