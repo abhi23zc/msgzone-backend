@@ -265,7 +265,7 @@ export const verifyOtp = async (req, res) => {
       httpOnly: true,
       secure: true,
       sameSite: "none",
-      domain, // dynamically assigned
+      domain, 
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       path: "/",
     });
@@ -330,26 +330,38 @@ export const profile = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    if (NODE_ENV == "production") {
-      // ✅ For Production
-      res.cookie("token", "", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        domain: ".webifyit.in",
-        path: "/",
-        expires: new Date(0),
-      });
+
+    if (NODE_ENV === "production") {
+      // ✅ For production
+      if (host.endsWith(".webifyit.in")) {
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          domain: ".webifyit.in",
+          path: "/",
+          expires:new Date(0)
+        });
+      } else if (host.endsWith(".msgzone.live")) {
+        res.cookie("token", token, {
+          httpOnly: true,
+          secure: true,
+          sameSite: "none",
+          domain: ".msgzone.live",
+          path: "/",
+          expires:new Date(0)
+        });
+      }
     } else {
-      // ☑️ For Development
-      res.cookie("token", "", {
+      // ☑️ For development
+      res.cookie("token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: "none",
-        expires: new Date(0), // Immediately expire the cookie
+        sameSite: "none", 
+        expires: new Date(0), 
+        path: "/",
       });
     }
-
     // If user exists in request, clear their token in DB
     if (req.user?.userId) {
       await User.findByIdAndUpdate(req.user.userId, {
