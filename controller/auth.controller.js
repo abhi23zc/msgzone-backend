@@ -330,11 +330,11 @@ export const profile = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-
+    const host = req.hostname;
     if (NODE_ENV === "production") {
       // ✅ For production
       if (host.endsWith(".webifyit.in")) {
-        res.cookie("token", token, {
+        res.cookie("token", "", {
           httpOnly: true,
           secure: true,
           sameSite: "none",
@@ -343,7 +343,7 @@ export const logout = async (req, res) => {
           expires:new Date(0)
         });
       } else if (host.endsWith(".msgzone.live")) {
-        res.cookie("token", token, {
+        res.cookie("token", "", {
           httpOnly: true,
           secure: true,
           sameSite: "none",
@@ -354,7 +354,7 @@ export const logout = async (req, res) => {
       }
     } else {
       // ☑️ For development
-      res.cookie("token", token, {
+      res.cookie("token", "", {
         httpOnly: true,
         secure: true,
         sameSite: "none", 
