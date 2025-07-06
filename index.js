@@ -14,7 +14,7 @@ import cron from "node-cron";
 import planRouter from './routes/plan.route.js'
 import morgan from 'morgan'
 
-const PORT = process.env.PORT|| 8080;
+const PORT = process.env.PORT || 8081;
 const app = express();
 
 app.use(
@@ -26,6 +26,8 @@ app.use(
       "https://whatsapp.webifyit.in",
       "https://whatsapp.web.webifyit.in",
       "https://dev.whatsapp.web.webifyit.in",
+      "https://msgzone.live",
+      "https://m.msgzone.live",
 
     ],
     credentials: true,
@@ -84,6 +86,6 @@ cron.schedule("0 */5 * * *", async () => {
 
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`🟢 ${process.env.NODE_ENV.toUpperCase()} server running on port ${PORT}`);
   restoreSessions()
 });

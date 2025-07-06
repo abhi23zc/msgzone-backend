@@ -72,7 +72,10 @@ const UserSchema = new mongoose.Schema(
       code: { type: String },
       expiresAt: { type: Date },
     },
-
+    resetPasswordOtp: {
+      code: { type: String },
+      expiresAt: { type: Date },
+    },
     profilePhoto: {
       type: String,
     },

@@ -40,7 +40,31 @@ export const createPlan = async (req, res) => {
 
 export const getAllPlans = async (req, res) => {
   try {
-    const plans = await Plan.find().sort({ price: -1 });
+    let userId = req.user?.userId;
+    let user = null;
+    let hasFreeTier = false;
+
+    // Find all plans, sorted by price descending
+    let plans = await Plan.find().sort({ price: -1 });
+
+    // If user is authenticated, check if they already have a free tier subscription
+    if (userId) {
+      user = await User.findById(userId)
+        .select("subscriptions")
+        .populate("subscriptions.plan");
+      if (user && user.subscriptions && user.subscriptions.length > 0) {
+        // Check if any subscription is for a plan with name "Free Tier"
+        hasFreeTier = user.subscriptions.some(
+          (sub) => sub.plan && sub.plan.name === "Free Tier"
+        );
+      }
+    }
+
+    // If user already has a free tier, filter out free tier plans (by name)
+    if (hasFreeTier) {
+      plans = plans.filter((plan) => plan.name !== "Free Tier");
+    }
+
     res.json({
       success: true,
       message: "Plans retrieved successfully",

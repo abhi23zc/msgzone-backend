@@ -6,6 +6,65 @@ import { Payment } from "../models/payment.schema.js";
 import { configDotenv } from "dotenv";
 configDotenv();
 
+const assignPlanToUser = async (req, res, userId, planId) => {
+  try {
+
+    const plan = await Plan.findById(planId);
+    if (!plan || plan.status !== "active") {
+      return res.status(404).json({
+        success: false,
+        message: "Plan not found or inactive",
+        data: {},
+      });
+    }
+
+    const user = await User.findById(userId).populate("subscriptions.plan");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        data: {},
+      });
+    }
+
+    const hasActive = user.subscriptions?.some((sub) => sub.isActive);
+
+    const now = new Date();
+    const end = new Date(
+      now.getTime() + plan.durationDays * 24 * 60 * 60 * 1000
+    );
+
+    const subscriptionData = {
+      plan: plan._id,
+      startDate: hasActive ? null : now,
+      endDate: hasActive ? null : end,
+      isActive: !hasActive,
+       status: hasActive ? "inactive" : "active",
+      usedMessages: 0,
+      deviceIds: [],
+    };
+
+    user.subscriptions.push(subscriptionData);
+    await user.save();
+
+    return res.json({
+      success: true,
+      message: hasActive
+        ? "Plan added to queue and will activate later"
+        : "Plan assigned and activated successfully",
+      data: { user },
+    });
+  } catch (error) {
+    console.error("Assign Plan Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      data: {},
+    });
+  }
+};
+
+
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY_ID || "rzp_test_HQ4tZ6kBqnghIu",
   key_secret: process.env.RAZORPAY_KEY_SECRET || "MfDx0p5Ngmqb2G9Vk4GZeSMe",
@@ -163,7 +222,7 @@ export const getAllPayments = async (req, res) => {
 // GET /user/payments
 export const getUserPayments = async (req, res) => {
   const userId = req.user?.userId;
-   const BASE_URL = `${req.protocol}://${req.get('host')}`;
+  const BASE_URL = `${req.protocol}://${req.get('host')}`;
 
   try {
     const payments = await Payment.find({ user: userId })
@@ -204,7 +263,7 @@ export const getUserPayments = async (req, res) => {
           utrNumber:
             payment.paymentMode === "manual" ? payment.utrNumber : null,
           screenshot:
-            payment.paymentMode === "manual" ? BASE_URL + "/" +payment.screenshotUrl : null,
+            payment.paymentMode === "manual" ? BASE_URL + "/" + payment.screenshotUrl : null,
           date: payment.date,
           plan: payment.plan,
           user: payment.user,
@@ -227,7 +286,7 @@ export const createManualPayment = async (req, res) => {
   const utrNumber = req?.body?.utrNumber;
   const screenshot = req?.file?.path;
   console.log(planId, utrNumber, screenshot)
-  if(!planId || !utrNumber || !screenshot){
+  if (!planId || !utrNumber || !screenshot) {
     return res.status(400).json({
       success: false,
       message: "All fields are required",
@@ -242,6 +301,20 @@ export const createManualPayment = async (req, res) => {
       return res
         .status(404)
         .json({ success: false, message: "Plan not found" });
+    }
+
+    if (plan.name == "Free Tier") {
+      await Payment.create({
+        paymentMode: "manual",
+        utrNumber : utrNumber || "",
+        screenshotUrl: screenshot || "",
+        user: userId,
+        plan: planId,
+        status: "approved",
+      });
+
+      assignPlanToUser(req, res, userId, planId);
+      return ;
     }
 
     await Payment.create({
@@ -299,7 +372,7 @@ export const approveManualPayment = async (req, res) => {
       endDate: hasActive ? null : end,
       usedMessages: 0,
       deviceIds: [],
-       status: hasActive ? "inactive" : "active",
+      status: hasActive ? "inactive" : "active",
       isActive: !hasActive,
     };
 
@@ -399,7 +472,7 @@ export const getPaymentsStats = async (req, res) => {
       rejectedPayments: 0,
       totalAmount: 0
     };
-     const BASE_URL = `${req.protocol}://${req.get('host')}`;
+    const BASE_URL = `${req.protocol}://${req.get('host')}`;
 
     return res.status(200).json({
       success: true,
@@ -417,7 +490,7 @@ export const getPaymentsStats = async (req, res) => {
           razorpay_signature: payment.paymentMode === "razorpay" ? payment.razorpay_signature : null,
           // Manual payment specific fields
           utrNumber: payment.paymentMode === "manual" ? payment.utrNumber : null,
-          screenshotUrl: payment.paymentMode === "manual" ? BASE_URL+"/"+ payment.screenshotUrl : null,
+          screenshotUrl: payment.paymentMode === "manual" ? BASE_URL + "/" + payment.screenshotUrl : null,
           date: payment.date
         })),
         stats: {
