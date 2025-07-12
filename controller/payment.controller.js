@@ -295,6 +295,7 @@ export const createManualPayment = async (req, res) => {
   }
   const userId = req.user?.userId;
 
+  console.log(planId)
   try {
     const plan = await Plan.findById(planId);
     if (!plan || plan.status !== "active") {
