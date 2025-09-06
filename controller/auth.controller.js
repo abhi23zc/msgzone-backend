@@ -215,7 +215,7 @@ export const sendOtp = async (req, res) => {
   try {
     await emailQueue.add(
       "email-queue",
-      { email, otp },
+      { email, otp, name: user.name },
       {
         attempts: 3,
         backoff: {
@@ -447,6 +447,7 @@ export const forgotPassword = async (req, res) => {
       {
         email,
         otp,
+        name: user.name,
         subject: "Password Reset OTP",
         message: `Your OTP for password reset is: ${otp}. Valid for 10 minutes.`
       },

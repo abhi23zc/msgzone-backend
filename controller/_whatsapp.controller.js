@@ -1287,3 +1287,63 @@ export function startSessionMonitoring() {
     );
   }, 60000); // Check every minute
 }
+
+
+export const sendNotification = async (deviceId, recieverId, message) => {
+  
+  let captions =  [];
+  const attachments = [];
+  const user = await User.findOne({role:"admin"});
+  const reciever = await User.findOne({_id: recieverId});
+
+  const userId = user._id;
+  console.log("notification sending", {deviceId, number: reciever?.whatsappNumber, message, userId})
+  captions = [...captions];
+  if (!deviceId || !reciever?.whatsappNumber) {
+    if (attachments?.length)
+      attachments.forEach((file) => fs.unlinkSync(file.path));
+    
+    return ({ status: false, message: "Missing required fields" });
+  }
+  const check = await canSendMessage(userId, userId);
+  if (!check.allowed) {
+    return ({ success: false, message: check.reason });
+  }
+  const tempAttachments =
+    attachments?.length > 0 &&
+    attachments.map((file) => ({
+      path: file.path,
+      mimetype: file.mimetype,
+      originalname: file.originalname,
+    }));
+
+  try {
+    await messageQueue.add(
+      "message-queue",
+      {
+        userId,
+        deviceId,
+        number : `${reciever?.whatsappNumber}`,
+        req: user,
+        message: htmlToWhatsapp(message),
+        captions,
+        attachments: tempAttachments || [],
+      },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 5000 },
+        removeOnComplete: true,
+        removeOnFail: true,
+      }
+    );
+    console.log("📤 Job added to queue ✅");
+    return ({ status: true, message: "Message Sent", data: null });
+  } catch (error) {
+    console.error("❌ Failed to add job to queue:", error.message);
+    return ({
+      status: false,
+      message: "Failed to send message",
+      error: error.message,
+    });
+  }
+};

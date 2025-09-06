@@ -39,7 +39,7 @@ const assignPlanToUser = async (req, res, userId, planId) => {
       startDate: hasActive ? null : now,
       endDate: hasActive ? null : end,
       isActive: !hasActive,
-       status: hasActive ? "inactive" : "active",
+      status: hasActive ? "inactive" : "active",
       usedMessages: 0,
       deviceIds: [],
     };
@@ -234,12 +234,17 @@ export const getUserPayments = async (req, res) => {
         razorpay_payment_id: 1,
         razorpay_signature: 1, // Added signature field from schema
         paymentMode: 1,
+        paymentMethod: 1, // Added paymentMethod field
+        bankDetails: 1, // Added bankDetails field
         status: 1,
         utrNumber: 1,
         screenshotUrl: 1,
         date: 1, // Changed from createdAt to date per schema
       });
 
+    // Debug: Log payment data to see what fields are available
+    console.log("Raw payment data from DB:", payments[0]);
+    
     return res.status(200).json({
       success: true,
       message: "User payments retrieved successfully",
@@ -259,6 +264,8 @@ export const getUserPayments = async (req, res) => {
               ? payment.razorpay_signature
               : null,
           mode: payment.paymentMode,
+          paymentMethod: payment.paymentMethod, // Added paymentMethod field
+          bankDetails: payment.bankDetails, // Added bankDetails field
           status: payment.status,
           utrNumber:
             payment.paymentMode === "manual" ? payment.utrNumber : null,
@@ -280,24 +287,43 @@ export const getUserPayments = async (req, res) => {
   }
 };
 
+import { sendNotification } from "./_whatsapp.controller.js"; // Make sure the path is correct
+import { PaymentSettings } from "../models/paymentSettings.schema.js";
+
 // Manual Payment
 export const createManualPayment = async (req, res) => {
   const planId = req?.body?.planId;
   const utrNumber = req?.body?.utrNumber;
+  const paymentMethod = req?.body?.paymentMethod || 'qr'; // Default to QR if not provided
   const screenshot = req?.file?.path;
-  // console.log(planId, utrNumber, screenshot)
+  
+  // Debug: Log the received data
+  console.log("createManualPayment - Received data:", {
+    planId,
+    utrNumber,
+    paymentMethod,
+    hasScreenshot: !!screenshot
+  });
+  
   if (!planId || !utrNumber) {
     return res.status(400).json({
       success: false,
-      message: "All fields are required",
+      message: "Plan ID and UTR number are required",
       data: {},
-    })
+    });
   }
+
   const userId = req.user?.userId;
 
-  console.log(planId)
   try {
     const plan = await Plan.findById(planId);
+    const user = await User.findById(userId);
+    const admin = await User.findOne({"role":"admin"});
+    
+    // Fetch payment settings to get bank details
+    const paymentSettings = await PaymentSettings.findOne({ isActive: true });
+    const bankDetails = paymentSettings?.bankDetails || null;
+
     if (!plan || plan.status !== "active") {
       return res
         .status(404)
@@ -305,27 +331,106 @@ export const createManualPayment = async (req, res) => {
     }
 
     if (plan.name == "Free Tier") {
-      await Payment.create({
+      const freeTierPayment = await Payment.create({
         paymentMode: "manual",
-        utrNumber : utrNumber || "",
+        utrNumber: utrNumber || "",
         screenshotUrl: screenshot || "",
+        paymentMethod: paymentMethod,
+        bankDetails: paymentMethod === 'bank' ? bankDetails : null,
         user: userId,
         plan: planId,
         status: "approved",
       });
+      
+      // Debug: Log the Free Tier payment data
+      console.log("createManualPayment - Free Tier payment created:", {
+        id: freeTierPayment._id,
+        paymentMethod: freeTierPayment.paymentMethod,
+        bankDetails: freeTierPayment.bankDetails,
+        utrNumber: freeTierPayment.utrNumber
+      });
+
+      // Send detailed notification for Free Tier auto-approval
+      const freeTierMessage = `🎉 *Payment Approved!*
+
+Hello ${user?.name || 'User'},
+
+Your payment for the *Free Tier* plan has been auto-approved successfully!
+
+📋 *Plan Details:*
+• Plan: Free Tier
+• Duration: ${plan.durationDays} days
+• Messages: ${plan.messageLimit || "Unlimited"} messages
+• Status: ✅ Active
+
+Your subscription is now active and you can start sending messages immediately.
+
+Thank you for choosing MsgZone! 🚀
+
+Best regards,
+MsgZone Team`;
+
+      await sendNotification(admin?.adminDevice, userId, freeTierMessage);
 
       assignPlanToUser(req, res, userId, planId);
-      return ;
+      return;
     }
 
-    await Payment.create({
+    const createdPayment = await Payment.create({
       paymentMode: "manual",
       utrNumber,
       screenshotUrl: screenshot || "",
+      paymentMethod: paymentMethod,
+      bankDetails: paymentMethod === 'bank' ? bankDetails : null,
       user: userId,
       plan: planId,
       status: "pending",
     });
+    
+    // Debug: Log the created payment data
+    console.log("createManualPayment - Created payment:", {
+      id: createdPayment._id,
+      paymentMethod: createdPayment.paymentMethod,
+      bankDetails: createdPayment.bankDetails,
+      utrNumber: createdPayment.utrNumber
+    });
+
+    // Send detailed notification for pending payment
+    const paymentMethodText = paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
+    const bankInfoText = paymentMethod === 'bank' && bankDetails ? 
+      `\n🏦 *Bank Details:*
+• Account Holder: ${bankDetails.accountHolderName}
+• Bank: ${bankDetails.bankName}
+• Account: ${bankDetails.accountNumber}
+• IFSC: ${bankDetails.ifscCode}
+• Branch: ${bankDetails.branchName}` : '';
+
+    const pendingMessage = `⏳ *Payment Under Review*
+
+Hello ${user?.name || 'User'},
+
+Your payment of ₹${plan.price} for the *${plan.name}* plan has been received and is currently under review.
+
+📋 *Payment Details:*
+• Amount: ₹${plan.price}
+• Plan: ${plan.name}
+• Payment Method: ${paymentMethodText}
+• UTR: ${utrNumber}
+• Status: 🔍 Pending Review${bankInfoText}
+
+📋 *Plan Details:*
+• Duration: ${plan.durationDays} days
+• Messages: ${plan.messageLimit || "Unlimited"} messages
+• Features: ${plan.features?.join(', ') || 'Standard features'}
+
+Our team will review your payment and activate your plan within 24 hours. You will receive a confirmation message once approved.
+
+Thank you for your patience!
+
+Best regards,
+MsgZone Team`;
+
+    await sendNotification(admin?.adminDevice, userId, pendingMessage);
 
     return res.status(200).json({
       success: true,
@@ -333,6 +438,7 @@ export const createManualPayment = async (req, res) => {
     });
   } catch (err) {
     console.error("Manual payment error:", err);
+
     return res.status(500).json({
       success: false,
       message: "Server error",
@@ -343,9 +449,12 @@ export const createManualPayment = async (req, res) => {
 // PUT /admin/approve-payment/:paymentId
 export const approveManualPayment = async (req, res) => {
   const { paymentId } = req.params;
-
+  
   try {
     const payment = await Payment.findById(paymentId).populate("user plan");
+    const admin = await User.findOne({"role":"admin"});
+
+    
     if (!payment || payment.paymentMode !== "manual") {
       return res
         .status(404)
@@ -385,6 +494,52 @@ export const approveManualPayment = async (req, res) => {
     payment.status = "approved";
     await payment.save();
 
+    // Send detailed approval notification
+    const paymentMethodText = payment.paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
+    const bankInfoText = payment.paymentMethod === 'bank' && payment.bankDetails ? 
+      `\n🏦 *Bank Details:*
+• Account Holder: ${payment.bankDetails.accountHolderName}
+• Bank: ${payment.bankDetails.bankName}
+• Account: ${payment.bankDetails.accountNumber}
+• IFSC: ${payment.bankDetails.ifscCode}
+• Branch: ${payment.bankDetails.branchName}` : '';
+
+    const approvalMessage = `🎉 *Payment Approved!*
+
+Hello ${user?.name || 'User'},
+
+Your payment of ₹${plan.price} for the *${plan.name}* plan has been approved successfully!
+
+📋 *Payment Details:*
+• Amount: ₹${plan.price}
+• Plan: ${plan.name}
+• Payment Method: ${paymentMethodText}
+• UTR: ${payment.utrNumber}
+• Status: ✅ Approved
+• Approved At: ${now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}${bankInfoText}
+
+📋 *Plan Details:*
+• Duration: ${plan.durationDays} days
+• Messages: ${plan.messageLimit || "Unlimited"} messages
+• Features: ${plan.features?.join(', ') || 'Standard features'}
+• Start Date: ${now.toLocaleDateString('en-IN')}
+• End Date: ${end.toLocaleDateString('en-IN')}
+
+🚀 *What's Next:*
+• Your subscription is now active
+• You can start sending messages immediately
+• Access all premium features
+• Track your usage in the dashboard
+
+Thank you for choosing MsgZone! 
+
+Need help? Contact our support team anytime.
+
+Best regards,
+MsgZone Team`;
+
+    await sendNotification(admin?.adminDevice, user._id, approvalMessage);
+
     return res.status(200).json({
       success: true,
       message: "Manual payment approved and plan activated.",
@@ -400,15 +555,54 @@ export const rejectManualPayment = async (req, res) => {
   const { paymentId } = req.params;
 
   try {
-    const payment = await Payment.findById(paymentId);
+    const payment = await Payment.findById(paymentId).populate("user plan");
+    const admin = await User.findOne({"role":"admin"});
+
     if (!payment || payment.paymentMode !== "manual") {
       return res
         .status(404)
         .json({ success: false, message: "Payment not found" });
     }
 
+    const user = payment.user;
+    const plan = payment.plan;
+
     payment.status = "rejected";
     await payment.save();
+
+    // Send detailed rejection notification
+    const rejectionMessage = `❌ *Payment Rejected*
+
+Hello ${user?.name || 'User'},
+
+We regret to inform you that your payment of ₹${plan.price} for the *${plan.name}* plan has been rejected.
+
+📋 *Payment Details:*
+• Amount: ₹${plan.price}
+• Plan: ${plan.name}
+• UTR: ${payment.utrNumber}
+• Status: ❌ Rejected
+• Rejected At: ${new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+
+*Reason:* Payment verification failed
+
+🔄 *What's Next:*
+• Please verify your payment details
+• Ensure UTR number is correct
+• Check if payment was successful
+• Contact support if you believe this is an error
+
+💡 *Need Help?*
+• Contact our support team
+• Resubmit payment with correct details
+• Check our payment guidelines
+
+We're here to help you get started!
+
+Best regards,
+MsgZone Team`;
+
+    await sendNotification(admin?.adminDevice, user._id, rejectionMessage);
 
     return res.status(200).json({
       success: true,
@@ -484,6 +678,8 @@ export const getPaymentsStats = async (req, res) => {
           user: payment.user,
           plan: payment.plan,
           paymentMode: payment.paymentMode,
+          paymentMethod: payment.paymentMethod, // Added paymentMethod field
+          bankDetails: payment.bankDetails, // Added bankDetails field
           status: payment.status,
           // Razorpay specific fields
           razorpay_order_id: payment.paymentMode === "razorpay" ? payment.razorpay_order_id : null,

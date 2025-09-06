@@ -11,9 +11,10 @@ export const checkDevice = async (userId, newDeviceId) => {
   if (activeSubscription) {
     // Check if subscription has expired
     if (activeSubscription.endDate && new Date(activeSubscription.endDate).getTime() < now) {
+      activeSubscription.status = "expired";
       // Find next subscription that has a plan but isn't active yet
       const nextValidSub = user.subscriptions?.find(
-        (sub) => sub.status !== "active" && sub.plan
+        (sub) => sub.status !== "active" && !sub.endDate && sub.plan
       );
 
       if (nextValidSub) {

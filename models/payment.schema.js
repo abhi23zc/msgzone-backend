@@ -11,6 +11,18 @@ const PaymentSchema = new mongoose.Schema({
 
   utrNumber: String,
   screenshotUrl: String,
+  paymentMethod: {
+    type: String,
+    enum: ["qr", "bank"],
+    default: "qr",
+  },
+  bankDetails: {
+    accountHolderName: String,
+    bankName: String,
+    accountNumber: String,
+    ifscCode: String,
+    branchName: String,
+  },
   status: {
     type: String,
     enum: ["pending", "approved", "rejected"],

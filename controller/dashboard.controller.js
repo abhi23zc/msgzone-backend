@@ -181,3 +181,54 @@ export const getTodayMessageCount = async (req, res) => {
     });
   }
 };
+
+// ✅ Export messages to CSV
+export const exportMessagesToCSV = async (req, res) => {
+  try {
+    const userId = req?.user?.userId;
+
+    // Get all messages for the user without any filters
+    const messages = await MessageLog.find({ userId })
+      .sort({ createdAt: -1 });
+
+    // Convert to CSV format
+    const csvHeaders = [
+      'S.No',
+      'Sender',
+      'Recipient', 
+      'Message',
+      'Status',
+      'Mode',
+      'Time'
+    ];
+
+    const csvRows = messages.map((msg, index) => [
+      index + 1,
+      msg.sendFrom || '',
+      msg.sendTo || '',
+      `"${(msg.text || '').replace(/"/g, '""')}"`, // Escape quotes in text
+      msg.status || '',
+      msg.sendThrough || '',
+      new Date(msg.createdAt).toLocaleString()
+    ]);
+
+    const csvContent = [
+      csvHeaders.join(','),
+      ...csvRows.map(row => row.join(','))
+    ].join('\n');
+
+    // Set headers for CSV download
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', `attachment; filename="messages_${new Date().toISOString().split('T')[0]}.csv"`);
+    
+    return res.send(csvContent);
+
+  } catch (error) {
+    console.error("Error exporting messages to CSV:", error);
+    return res.status(500).json({
+      success: false,
+      data: null,
+      message: "Server error occurred while exporting CSV",
+    });
+  }
+};

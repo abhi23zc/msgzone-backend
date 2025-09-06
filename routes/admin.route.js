@@ -4,11 +4,17 @@ import {
   getWeeklyMessageStats,
   getUserGrowthStats,
   getLiveActivity,
+  setAdminDevice,
 } from "../controller/admin.controller.js";
 import { isAuthenticated } from "../middleware/isAuthenticated.js";
 import { isAdmin } from "../middleware/authenticateAdmin.js";
 import { createUser, deleteUser, getAllUsers, getUserStats, updateUser } from "../controller/admin_user.controller.js";
-import { getMessageReportList, getMessageReportStats } from "../controller/admin.report.controller.js";
+import { 
+  getMessageReportStats, 
+  getMessageReportList, 
+  exportReportCSV, 
+  exportReportExcel 
+} from "../controller/admin.report.controller.js";
 import { assignPlanToUser, createPlan, deletePlan, getAllPlans, updatePlan } from "../controller/admin.plan.controller.js";
 
 const router = express.Router();
@@ -42,6 +48,10 @@ router.delete("/users/:id",  isAuthenticated, isAdmin,  deleteUser);
 router.get("/reports/stats", isAuthenticated, isAdmin,getMessageReportStats);
 router.get("/reports/list", isAuthenticated, isAdmin,getMessageReportList);
 
+// Add these new routes for export functionality
+router.get("/reports/export/csv", isAuthenticated, isAdmin, exportReportCSV);
+router.get("/reports/export/excel", isAuthenticated, isAdmin, exportReportExcel);
+
 
 // ✅ Plan Management
 router.post("/plans", isAuthenticated, isAdmin, createPlan);
@@ -51,5 +61,8 @@ router.delete("/plans/:id", isAuthenticated, isAdmin, deletePlan);
 
 // ✅ Assign Plan to User
 router.post("/assign-plan", isAuthenticated, isAdmin, assignPlanToUser);
+
+// ✅ Settings
+router.post("/setAdminDevice", isAuthenticated, isAdmin, setAdminDevice);
 
 export default router;

@@ -12,7 +12,10 @@ import 'dotenv/config';
 import { restoreSessions } from "./sessionStart.js";
 import cron from "node-cron"; 
 import planRouter from './routes/plan.route.js'
+import paymentSettingsRouter from './routes/paymentSettings.route.js'
 import morgan from 'morgan'
+// Import email worker to start it automatically
+import './utils/EmailWorker.js';
 
 const PORT = process.env.PORT || 8081;
 const app = express();
@@ -21,6 +24,7 @@ app.use(
   cors({
     origin: [
       "http://192.168.1.8:3000",
+      "http://192.168.1.8:3001",
       "http://localhost:3000",
       "https://msgzone.vercel.app",
       "https://whatsapp.webifyit.in",
@@ -54,6 +58,9 @@ app.use("/api/v1/admin", adminRouter)
 
 // 💰Payment Routes
 app.use('/api/v1/payment', paymentRouter);
+
+// ⚙️Payment Settings Routes
+app.use('/api/v1', paymentSettingsRouter);
 
 // ❌ Old API Version
 app.use("/api/v1/create-message", whatsappApiRouter);

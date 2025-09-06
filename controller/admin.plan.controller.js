@@ -5,8 +5,8 @@ import redisClient from "../utils/redis.js";
 export const createPlan = async (req, res) => {
   try {
     // Validate plan type and required fields
-    const { type, deviceLimit, durationDays, price } = req.body;
-    if (!type || !deviceLimit || !durationDays || !price) {
+    const { type, deviceLimit, durationDays} = req.body;
+    if (!type || !deviceLimit || !durationDays) {
       return res.status(400).json({
         success: false,
         message: "Missing required fields",
@@ -172,7 +172,8 @@ export const assignPlanToUser = async (req, res) => {
       });
     }
 
-    const hasActive = user.subscriptions?.some((sub) => sub.isActive);
+    // Find subscriptions where endDate is missing or null
+    const hasActive = user.subscriptions?.filter(sub => !sub.endDate);
 
     const now = new Date();
     const end = new Date(

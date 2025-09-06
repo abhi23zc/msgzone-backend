@@ -1,6 +1,7 @@
 import { MessageLog } from "../models/_message.log.schema.js";
 import { User } from "../models/user.Schema.js";
-
+import csv from "csv-express";
+import ExcelJS from "exceljs";
 
 export const getMessageReportStats = async (req, res) => {
   try {
@@ -135,6 +136,130 @@ export const getMessageReportList = async (req, res) => {
     return res.status(500).json({
       status: false,
       message: "Failed to fetch message reports",
+      data: {},
+    });
+  }
+};
+
+export const exportReportCSV = async (req, res) => {
+  try {
+    // Get all non-admin user IDs
+    const nonAdminUserIds = await User.find({ role: { $ne: "admin" } }).distinct("_id");
+    
+    // Get all messages from non-admin users without any filters
+    const messages = await MessageLog.find({ userId: { $in: nonAdminUserIds } })
+      .sort({ createdAt: -1 })
+      .populate("userId", "name role");
+
+    // Filter out any admin messages (extra safety)
+    const filteredMessages = messages.filter(msg => msg.userId?.role !== "admin");
+
+    const csvData = filteredMessages.map((msg) => ({
+      Recipient: msg.sendTo,
+      Message: msg.text || "-",
+      Status: msg.status === "error" ? "Failed" : capitalize(msg.status),
+      "Sent Time": (msg.sentAt || msg.createdAt)?.toISOString(),
+      Type: msg.type,
+      "Send Through": msg.sendThrough,
+      User: msg.userId?.name || "N/A",
+      "Created At": msg.createdAt?.toISOString(),
+    }));
+
+    res.csv(csvData, true, {
+      "Content-Disposition": "attachment; filename=message-reports.csv",
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to export CSV report",
+      data: {},
+    });
+  }
+};
+
+export const exportReportExcel = async (req, res) => {
+  try {
+    const { from, to, status, search } = req.query;
+
+    const query = {};
+
+    // Date filtering
+    if (from || to) {
+      query.createdAt = {};
+      if (from) query.createdAt.$gte = new Date(from);
+      if (to) query.createdAt.$lte = new Date(to);
+    }
+
+    // Status filtering
+    if (status && status !== "all") {
+      query.status = status.toLowerCase();
+    }
+
+    // Exclude admin users
+    const nonAdminUserIds = await User.find({ role: { $ne: "admin" } }).distinct("_id");
+    query.userId = { $in: nonAdminUserIds };
+
+    if (search) {
+      const searchRegex = new RegExp(search, "i");
+      query.$or = [
+        { sendTo: searchRegex },
+        { text: searchRegex },
+      ];
+    }
+
+    const messages = await MessageLog.find(query)
+      .sort({ createdAt: -1 })
+      .populate("userId", "name role");
+
+    let filteredMessages = messages;
+
+    if (search) {
+      const searchLower = search.toLowerCase();
+      filteredMessages = messages.filter((msg) =>
+        msg.userId?.name?.toLowerCase().includes(searchLower)
+      );
+    }
+
+    filteredMessages = filteredMessages.filter(msg => msg.userId?.role !== "admin");
+
+    const workbook = new ExcelJS.Workbook();
+    const worksheet = workbook.addWorksheet('Message Reports');
+
+    worksheet.columns = [
+      { header: 'Recipient', key: 'recipient', width: 20 },
+      { header: 'Message', key: 'message', width: 50 },
+      { header: 'Status', key: 'status', width: 15 },
+      { header: 'Sent Time', key: 'sentTime', width: 20 },
+      { header: 'Type', key: 'type', width: 15 },
+      { header: 'Send Through', key: 'sendThrough', width: 15 },
+      { header: 'User', key: 'user', width: 20 },
+      { header: 'Created At', key: 'createdAt', width: 20 },
+    ];
+
+    filteredMessages.forEach((msg) => {
+      worksheet.addRow({
+        recipient: msg.sendTo,
+        message: msg.text || "-",
+        status: msg.status === "error" ? "Failed" : capitalize(msg.status),
+        sentTime: (msg.sentAt || msg.createdAt)?.toISOString(),
+        type: msg.type,
+        sendThrough: msg.sendThrough,
+        user: msg.userId?.name || "N/A",
+        createdAt: msg.createdAt?.toISOString(),
+      });
+    });
+
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=message-reports.xlsx');
+
+    await workbook.xlsx.write(res);
+    res.end();
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to export Excel report",
       data: {},
     });
   }

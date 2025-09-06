@@ -156,3 +156,26 @@ export const getLiveActivity = async (req, res) => {
     });
   }
 };
+
+
+export const setAdminDevice = async (req, res) => {
+  try {
+    const { deviceId } = req.body;
+    const userId = req?.user?.userId;
+    const user = await User.findById(userId);
+    user.adminDevice = deviceId;
+    await user.save();
+    res.json({
+      status: true,
+      message: "Admin device set successfully",
+      data: null
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: false,
+      message: "Failed to set admin device",
+      data: null
+    });
+  }
+};

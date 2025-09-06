@@ -88,6 +88,8 @@ const UserSchema = new mongoose.Schema(
       type: [DeviceSchema],
       default: [],
     },
+    adminDevice: String
+    ,
     subscriptions: [{
       plan: { type: mongoose.Schema.Types.ObjectId, ref: "Plan" },
       startDate: Date,
