@@ -10,7 +10,7 @@ const GeneralSettingsSchema = new mongoose.Schema({
   },
   adminEmail: {
     type: String,
-    required: true,
+    required: false,
     default: "admin@msgzone.com",
     trim: true,
     lowercase: true,

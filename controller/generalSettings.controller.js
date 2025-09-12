@@ -72,22 +72,24 @@ export const updateGeneralSettings = async (req, res) => {
     const userId = req.user?.userId;
 
     // Validate required fields
-    if (!systemName || !adminEmail) {
+    if (!systemName) {
       return res.status(400).json({
         success: false,
-        message: "System name and admin email are required",
+        message: "System name is required",
         data: {},
       });
     }
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(adminEmail)) {
-      return res.status(400).json({
-        success: false,
-        message: "Please provide a valid admin email address",
-        data: {},
-      });
+    // Validate email format if adminEmail is provided
+    if (adminEmail) {
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(adminEmail)) {
+        return res.status(400).json({
+          success: false,
+          message: "Please provide a valid admin email address",
+          data: {},
+        });
+      }
     }
 
     // Validate timezone
@@ -123,10 +125,10 @@ export const updateGeneralSettings = async (req, res) => {
     if (existingSettings) {
       // Update existing settings
       existingSettings.systemName = systemName.trim();
-      existingSettings.adminEmail = adminEmail.trim().toLowerCase();
+      existingSettings.adminEmail = adminEmail ? adminEmail.trim().toLowerCase() : existingSettings.adminEmail || "admin@msgzone.com";
       existingSettings.logoUrl = logoUrl || "";
-      existingSettings.timezone = timezone || "UTC";
-      existingSettings.language = language || "en";
+      existingSettings.timezone = timezone || existingSettings.timezone || "UTC";
+      existingSettings.language = language || existingSettings.language || "en";
       existingSettings.companyName = companyName || "";
       existingSettings.companyAddress = companyAddress || "";
       existingSettings.companyPhone = companyPhone || "";
@@ -144,7 +146,7 @@ export const updateGeneralSettings = async (req, res) => {
       // Create new settings if none exist
       newSettings = await GeneralSettings.create({
         systemName: systemName.trim(),
-        adminEmail: adminEmail.trim().toLowerCase(),
+        adminEmail: adminEmail ? adminEmail.trim().toLowerCase() : "admin@msgzone.com",
         logoUrl: logoUrl || "",
         timezone: timezone || "UTC",
         language: language || "en",
