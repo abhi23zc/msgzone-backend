@@ -34,7 +34,8 @@ app.use(
       "https://dev.whatsapp.web.webifyit.in",
       "https://msgzone.live",
       "https://m.msgzone.live",
-      "https://wp.webifyit.in"
+      "https://wp.webifyit.in",
+      "https://wp.goyalpay.in"
 
     ],
     credentials: true,
