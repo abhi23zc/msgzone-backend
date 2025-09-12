@@ -15,7 +15,7 @@ import {
   exportReportCSV, 
   exportReportExcel 
 } from "../controller/admin.report.controller.js";
-import { assignPlanToUser, createPlan, deletePlan, getAllPlans, updatePlan } from "../controller/admin.plan.controller.js";
+import { assignPlanToUser, createPlan, deletePlan, getAllPlans, updatePlan, reorderPlans } from "../controller/admin.plan.controller.js";
 
 const router = express.Router();
 
@@ -56,6 +56,7 @@ router.get("/reports/export/excel", isAuthenticated, isAdmin, exportReportExcel)
 // ✅ Plan Management
 router.post("/plans", isAuthenticated, isAdmin, createPlan);
 router.get("/plans", isAuthenticated, getAllPlans);
+router.put("/plans/reorder", isAuthenticated, isAdmin, reorderPlans);
 router.put("/plans/:id", isAuthenticated, isAdmin, updatePlan);
 router.delete("/plans/:id", isAuthenticated, isAdmin, deletePlan);
 

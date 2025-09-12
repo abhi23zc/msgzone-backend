@@ -5,6 +5,75 @@ import { emailQueue } from "../utils/EmailQueue.js";
 
 let NODE_ENV = process.env.NODE_ENV || "production";
 
+// Domain configuration for production
+const PRODUCTION_DOMAINS = [
+  ".webifyit.in",
+  ".msgzone.live",
+];
+
+
+function getDomainConfig(hostname) {
+  if (NODE_ENV !== "production") {
+    return {
+      isProduction: false,
+      domain: null,
+      cookieOptions: {
+        httpOnly: true,
+        secure: false,
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      }
+    };
+  }
+
+  const matchedDomain = PRODUCTION_DOMAINS.find(domain => hostname.endsWith(domain));
+  
+  if (matchedDomain) {
+    return {
+      isProduction: true,
+      domain: matchedDomain,
+      cookieOptions: {
+        httpOnly: true,
+        secure: true,
+        sameSite: "none",
+        domain: matchedDomain,
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+        path: "/",
+      }
+    };
+  }
+
+  return {
+    isProduction: true,
+    domain: PRODUCTION_DOMAINS[0],
+    cookieOptions: {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      domain: PRODUCTION_DOMAINS[0],
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+      path: "/",
+    }
+  };
+}
+
+
+function setAuthCookie(res, token, hostname) {
+  const config = getDomainConfig(hostname);
+  res.cookie("token", token, config.cookieOptions);
+}
+
+
+function clearAuthCookie(res, hostname) {
+  const config = getDomainConfig(hostname);
+  const clearOptions = {
+    ...config.cookieOptions,
+    expires: new Date(0)
+  };
+  res.cookie("token", "", clearOptions);
+}
+
 function generateToken(user) {
   return jwt.sign(
     { userId: user._id, role: user.role },
@@ -61,37 +130,8 @@ export const login = async (req, res) => {
 
     const token = generateToken(user);
 
-    if (NODE_ENV === "production") {
-      // ✅ For production
-      if (host.endsWith(".webifyit.in")) {
-        res.cookie("token", token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          domain: ".webifyit.in",
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          path: "/",
-        });
-      } else if (host.endsWith(".msgzone.live")) {
-        res.cookie("token", token, {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          domain: ".msgzone.live",
-          maxAge: 7 * 24 * 60 * 60 * 1000,
-          path: "/",
-        });
-      }
-    } else {
-      // ☑️ For development
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: false, // NO secure on localhost HTTP
-        sameSite: "lax", // Use "lax" or "strict", but NOT "none" for localhost HTTP
-        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: "/",
-      });
-    }
+    // Set cookie with dynamic domain configuration
+    setAuthCookie(res, token, host);
 
     user.lastLogin = new Date();
     user.token = token;
@@ -251,34 +291,9 @@ export const verifyOtp = async (req, res) => {
   await user.save();
 
   const token = generateToken(user);
-  if (NODE_ENV === "production") {
-    const host = req.hostname;
-
-    let domain = ".webifyit.in"; // default domain
-    if (host.endsWith(".msgzone.live")) {
-      domain = ".msgzone.live";
-
-    }
-    // Add more domains if needed
-
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-      domain, 
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/",
-    });
-  } else {
-    // Development environment (e.g., localhost)
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-      maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-      path: "/",
-    });
-  }
+  
+  // Set cookie with dynamic domain configuration
+  setAuthCookie(res, token, req.hostname);
 
   user.lastLogin = new Date();
   user.token = token;
@@ -330,38 +345,8 @@ export const profile = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    const host = req.hostname;
-    if (NODE_ENV === "production") {
-      // ✅ For production
-      if (host.endsWith(".webifyit.in")) {
-        res.cookie("token", "", {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          domain: ".webifyit.in",
-          path: "/",
-          expires:new Date(0)
-        });
-      } else if (host.endsWith(".msgzone.live")) {
-        res.cookie("token", "", {
-          httpOnly: true,
-          secure: true,
-          sameSite: "none",
-          domain: ".msgzone.live",
-          path: "/",
-          expires:new Date(0)
-        });
-      }
-    } else {
-      // ☑️ For development
-      res.cookie("token", "", {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none", 
-        expires: new Date(0), 
-        path: "/",
-      });
-    }
+    // Clear cookie with dynamic domain configuration
+    clearAuthCookie(res, req.hostname);
     // If user exists in request, clear their token in DB
     if (req.user?.userId) {
       await User.findByIdAndUpdate(req.user.userId, {

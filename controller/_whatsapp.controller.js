@@ -28,6 +28,31 @@ import { checkDevice } from "../middleware/checkDevice.js";
 
 const sessions = {};
 
+// ✅ Helper function to check device status
+const checkDeviceStatus = async (userId, deviceId) => {
+  try {
+    const user = await User.findById(userId).select('devices');
+    if (!user) {
+      return { exists: false, status: null, message: "User not found" };
+    }
+
+    const device = user.devices.find(d => d.deviceId === deviceId);
+    if (!device) {
+      return { exists: false, status: null, message: "Device not found" };
+    }
+
+    return { 
+      exists: true, 
+      status: device.status, 
+      device: device,
+      message: `Device is ${device.status}` 
+    };
+  } catch (error) {
+    logger.error(`Error checking device status: ${error.message}`);
+    return { exists: false, status: null, message: "Error checking device status" };
+  }
+};
+
 const reconnectionAttempts = {};
 const MAX_RETRIES = 3;
 
@@ -1001,6 +1026,22 @@ export const sendMessageApi = async (req, res) => {
         .json({ status: false, message: "Missing required fields" });
     }
 
+    // Check if device is connected before allowing message sending
+    const deviceStatus = await checkDeviceStatus(userId, deviceId);
+    if (!deviceStatus.exists) {
+      return res.status(400).json({ 
+        status: false, 
+        message: deviceStatus.message 
+      });
+    }
+
+    if (deviceStatus.status !== "connected") {
+      return res.status(400).json({ 
+        status: false, 
+        message: `Device is ${deviceStatus.status}. Please connect your device first.` 
+      });
+    }
+
     const check = await canSendMessage(req, userId);
     if (!check.allowed) {
       return res.status(403).json({ success: false, message: check.reason });
@@ -1149,14 +1190,97 @@ export const re_generateDeviceApiKey = async (req, res) => {
   });
 };
 
+// ✅ Delete API KEY
+export const deleteApiKey = async (req, res) => {
+  try {
+    const { apiKeyId } = req.params;
+    const userId = req.user?.userId;
+
+    if (!apiKeyId) {
+      return res.status(400).json({
+        status: false,
+        message: "API key ID is required"
+      });
+    }
+
+    // Find the API key and verify ownership
+    const apiKey = await ApiKey.findOne({ _id: apiKeyId, userId });
+    if (!apiKey) {
+      return res.status(404).json({
+        status: false,
+        message: "API key not found or you don't have permission to delete it"
+      });
+    }
+
+    // Remove from Redis cache if exists
+    const redisKey = `apikey:${apiKey.apiKey}`;
+    try {
+      await redis.del(redisKey);
+      logger.info(`[${userId}] Removed API key from Redis cache: ${apiKey.deviceId}`);
+    } catch (redisError) {
+      logger.warn(`[${userId}] Failed to remove API key from Redis: ${redisError.message}`);
+    }
+
+    // Delete the API key from database
+    await ApiKey.findByIdAndDelete(apiKeyId);
+
+    logger.info(`[${userId}] API key deleted successfully: ${apiKey.deviceId}`);
+
+    return res.status(200).json({
+      status: true,
+      message: "API key deleted successfully"
+    });
+  } catch (error) {
+    logger.error(`Failed to delete API key: ${error.message}`);
+    return res.status(500).json({
+      status: false,
+      message: "Failed to delete API key"
+    });
+  }
+};
+
 // ✅ Get API KEYS
 export const getApiKeys = async (req, res) => {
   try {
     const userId = req.user?.userId;
+    
+    // Get all API keys for the user
     const apiKeys = await ApiKey.find({ userId });
+    
+    // Update API key status based on device connection status
+    const updatedApiKeys = await Promise.all(
+      apiKeys.map(async (apiKey) => {
+        // Check device status using helper function
+        const deviceStatus = await checkDeviceStatus(userId, apiKey.deviceId);
+        
+        // Determine if device is connected and active
+        const isDeviceConnected = deviceStatus.exists && deviceStatus.status === "connected";
+        
+        // Update API key status based on device status
+        const newStatus = isDeviceConnected ? "active" : "inactive";
+        
+        // Only update if status has changed
+        if (apiKey.status !== newStatus) {
+          apiKey.status = newStatus;
+          await apiKey.save();
+        }
+        
+        return {
+          ...apiKey.toObject(),
+          deviceStatus: deviceStatus.exists ? deviceStatus.status : "not_found",
+          deviceNumber: deviceStatus.exists ? deviceStatus.device.number : null,
+          lastConnected: deviceStatus.exists ? deviceStatus.device.lastConnected : null
+        };
+      })
+    );
+
     return res
       .status(200)
-      .json({ status: true, data: apiKeys, message: "API keys fetched" });
+      .json({ 
+        status: true, 
+        data: updatedApiKeys, 
+        message: "API keys fetched with device status" 
+      });
   } catch (error) {
     logger.error(`Failed to fetch API keys: ${error.message}`);
     return res
@@ -1323,7 +1447,7 @@ export const sendNotification = async (deviceId, recieverId, message) => {
       {
         userId,
         deviceId,
-        number : `${reciever?.whatsappNumber}`,
+        number : `91${reciever?.whatsappNumber}`,
         req: user,
         message: htmlToWhatsapp(message),
         captions,

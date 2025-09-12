@@ -13,6 +13,8 @@ import { restoreSessions } from "./sessionStart.js";
 import cron from "node-cron"; 
 import planRouter from './routes/plan.route.js'
 import paymentSettingsRouter from './routes/paymentSettings.route.js'
+import generalSettingsRouter from './routes/generalSettings.route.js'
+import messageTemplatesRouter from './routes/messageTemplates.route.js'
 import morgan from 'morgan'
 // Import email worker to start it automatically
 import './utils/EmailWorker.js';
@@ -61,6 +63,12 @@ app.use('/api/v1/payment', paymentRouter);
 
 // ⚙️Payment Settings Routes
 app.use('/api/v1', paymentSettingsRouter);
+
+// ⚙️General Settings Routes
+app.use('/api/v1', generalSettingsRouter);
+
+// 📝Message Templates Routes
+app.use('/api/v1/admin', messageTemplatesRouter);
 
 // ❌ Old API Version
 app.use("/api/v1/create-message", whatsappApiRouter);

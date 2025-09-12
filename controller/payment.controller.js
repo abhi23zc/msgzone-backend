@@ -289,6 +289,7 @@ export const getUserPayments = async (req, res) => {
 
 import { sendNotification } from "./_whatsapp.controller.js"; // Make sure the path is correct
 import { PaymentSettings } from "../models/paymentSettings.schema.js";
+import { getTemplateWithVariables } from "./messageTemplates.controller.js";
 
 // Manual Payment
 export const createManualPayment = async (req, res) => {
@@ -350,8 +351,28 @@ export const createManualPayment = async (req, res) => {
         utrNumber: freeTierPayment.utrNumber
       });
 
-      // Send detailed notification for Free Tier auto-approval
-      const freeTierMessage = `🎉 *Payment Approved!*
+      // Send detailed notification for Free Tier auto-approval using template
+      try {
+        const templateVariables = {
+          userName: user?.name || 'User',
+          amount: '0',
+          planName: plan.name,
+          paymentMethod: 'Free Tier',
+          utrNumber: utrNumber || 'N/A',
+          approvedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+          durationDays: plan.durationDays,
+          messageLimit: plan.messageLimit || "Unlimited",
+          features: plan.features?.join(', ') || 'Standard features',
+          startDate: new Date().toLocaleDateString('en-IN'),
+          endDate: new Date(Date.now() + plan.durationDays * 24 * 60 * 60 * 1000).toLocaleDateString('en-IN')
+        };
+
+        const freeTierMessage = await getTemplateWithVariables('paymentApproval', templateVariables);
+        await sendNotification(admin?.adminDevice, userId, freeTierMessage);
+      } catch (templateError) {
+        console.error('Error using template for Free Tier notification:', templateError);
+        // Fallback to hardcoded message if template fails
+        const freeTierMessage = `🎉 *Payment Approved!*
 
 Hello ${user?.name || 'User'},
 
@@ -370,7 +391,8 @@ Thank you for choosing MsgZone! 🚀
 Best regards,
 MsgZone Team`;
 
-      await sendNotification(admin?.adminDevice, userId, freeTierMessage);
+        await sendNotification(admin?.adminDevice, userId, freeTierMessage);
+      }
 
       assignPlanToUser(req, res, userId, planId);
       return;
@@ -395,17 +417,36 @@ MsgZone Team`;
       utrNumber: createdPayment.utrNumber
     });
 
-    // Send detailed notification for pending payment
-    const paymentMethodText = paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
-    const bankInfoText = paymentMethod === 'bank' && bankDetails ? 
-      `\n🏦 *Bank Details:*
+    // Send detailed notification for pending payment using template
+    try {
+      const paymentMethodText = paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
+      
+      const templateVariables = {
+        userName: user?.name || 'User',
+        amount: plan.price,
+        planName: plan.name,
+        paymentMethod: paymentMethodText,
+        utrNumber: utrNumber,
+        durationDays: plan.durationDays,
+        messageLimit: plan.messageLimit || "Unlimited",
+        features: plan.features?.join(', ') || 'Standard features'
+      };
+
+      const pendingMessage = await getTemplateWithVariables('paymentPending', templateVariables);
+      await sendNotification(admin?.adminDevice, userId, pendingMessage);
+    } catch (templateError) {
+      console.error('Error using template for pending payment notification:', templateError);
+      // Fallback to hardcoded message if template fails
+      const paymentMethodText = paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
+      const bankInfoText = paymentMethod === 'bank' && bankDetails ? 
+        `\n🏦 *Bank Details:*
 • Account Holder: ${bankDetails.accountHolderName}
 • Bank: ${bankDetails.bankName}
 • Account: ${bankDetails.accountNumber}
 • IFSC: ${bankDetails.ifscCode}
 • Branch: ${bankDetails.branchName}` : '';
 
-    const pendingMessage = `⏳ *Payment Under Review*
+      const pendingMessage = `⏳ *Payment Under Review*
 
 Hello ${user?.name || 'User'},
 
@@ -430,7 +471,8 @@ Thank you for your patience!
 Best regards,
 MsgZone Team`;
 
-    await sendNotification(admin?.adminDevice, userId, pendingMessage);
+      await sendNotification(admin?.adminDevice, userId, pendingMessage);
+    }
 
     return res.status(200).json({
       success: true,
@@ -494,17 +536,39 @@ export const approveManualPayment = async (req, res) => {
     payment.status = "approved";
     await payment.save();
 
-    // Send detailed approval notification
-    const paymentMethodText = payment.paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
-    const bankInfoText = payment.paymentMethod === 'bank' && payment.bankDetails ? 
-      `\n🏦 *Bank Details:*
+    // Send detailed approval notification using template
+    try {
+      const paymentMethodText = payment.paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
+      
+      const templateVariables = {
+        userName: user?.name || 'User',
+        amount: plan.price,
+        planName: plan.name,
+        paymentMethod: paymentMethodText,
+        utrNumber: payment.utrNumber,
+        approvedAt: now.toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        durationDays: plan.durationDays,
+        messageLimit: plan.messageLimit || "Unlimited",
+        features: plan.features?.join(', ') || 'Standard features',
+        startDate: now.toLocaleDateString('en-IN'),
+        endDate: end.toLocaleDateString('en-IN')
+      };
+
+      const approvalMessage = await getTemplateWithVariables('paymentApproval', templateVariables);
+      await sendNotification(admin?.adminDevice, user._id, approvalMessage);
+    } catch (templateError) {
+      console.error('Error using template for approval notification:', templateError);
+      // Fallback to hardcoded message if template fails
+      const paymentMethodText = payment.paymentMethod === 'bank' ? 'Bank Transfer (NEFT/RTGS)' : 'QR Code & UPI';
+      const bankInfoText = payment.paymentMethod === 'bank' && payment.bankDetails ? 
+        `\n🏦 *Bank Details:*
 • Account Holder: ${payment.bankDetails.accountHolderName}
 • Bank: ${payment.bankDetails.bankName}
 • Account: ${payment.bankDetails.accountNumber}
 • IFSC: ${payment.bankDetails.ifscCode}
 • Branch: ${payment.bankDetails.branchName}` : '';
 
-    const approvalMessage = `🎉 *Payment Approved!*
+      const approvalMessage = `🎉 *Payment Approved!*
 
 Hello ${user?.name || 'User'},
 
@@ -538,7 +602,8 @@ Need help? Contact our support team anytime.
 Best regards,
 MsgZone Team`;
 
-    await sendNotification(admin?.adminDevice, user._id, approvalMessage);
+      await sendNotification(admin?.adminDevice, user._id, approvalMessage);
+    }
 
     return res.status(200).json({
       success: true,
@@ -570,8 +635,23 @@ export const rejectManualPayment = async (req, res) => {
     payment.status = "rejected";
     await payment.save();
 
-    // Send detailed rejection notification
-    const rejectionMessage = `❌ *Payment Rejected*
+    // Send detailed rejection notification using template
+    try {
+      const templateVariables = {
+        userName: user?.name || 'User',
+        amount: plan.price,
+        planName: plan.name,
+        utrNumber: payment.utrNumber,
+        rejectedAt: new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }),
+        rejectionReason: 'Payment verification failed'
+      };
+
+      const rejectionMessage = await getTemplateWithVariables('paymentRejection', templateVariables);
+      await sendNotification(admin?.adminDevice, user._id, rejectionMessage);
+    } catch (templateError) {
+      console.error('Error using template for rejection notification:', templateError);
+      // Fallback to hardcoded message if template fails
+      const rejectionMessage = `❌ *Payment Rejected*
 
 Hello ${user?.name || 'User'},
 
@@ -602,7 +682,8 @@ We're here to help you get started!
 Best regards,
 MsgZone Team`;
 
-    await sendNotification(admin?.adminDevice, user._id, rejectionMessage);
+      await sendNotification(admin?.adminDevice, user._id, rejectionMessage);
+    }
 
     return res.status(200).json({
       success: true,

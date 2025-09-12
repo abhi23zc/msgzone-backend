@@ -94,7 +94,19 @@ async function processMessageJob(job) {
     const enableCode = req?.enableCode || false;
     await incrementMessageCount(userId);
 
-    const formattedNumber = enableCode ? `91${currentNumber}` : currentNumber;
+    let processedNumber = currentNumber;
+  
+    processedNumber = processedNumber.replace(/\D/g, '');
+    
+    if (processedNumber.length < 10) {
+      processedNumber = processedNumber.padStart(10, '0');
+    }
+
+    if (processedNumber.length > 12) {
+      processedNumber = processedNumber.slice(-12);
+    }
+    
+    const formattedNumber = enableCode ? `91${processedNumber}` : processedNumber;
     const jid = formattedNumber.includes("@s.whatsapp.net")
       ? formattedNumber
       : `${formattedNumber}@s.whatsapp.net`;

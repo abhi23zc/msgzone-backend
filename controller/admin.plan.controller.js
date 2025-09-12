@@ -23,7 +23,12 @@ export const createPlan = async (req, res) => {
       });
     }
 
-    const plan = await Plan.create(req.body);
+    // Get the highest order number and add 1 for the new plan
+    const lastPlan = await Plan.findOne().sort({ order: -1 });
+    const newOrder = lastPlan ? (lastPlan.order || 0) + 1 : 1;
+    
+    const planData = { ...req.body, order: newOrder };
+    const plan = await Plan.create(planData);
     res.status(201).json({
       success: true,
       message: "Plan created successfully",
@@ -44,8 +49,17 @@ export const getAllPlans = async (req, res) => {
     let user = null;
     let hasFreeTier = false;
 
-    // Find all plans, sorted by price descending
-    let plans = await Plan.find().sort({ price: -1 });
+    // Check if any plans don't have order field and set default values
+    const plansWithoutOrder = await Plan.find({ order: { $exists: false } });
+    if (plansWithoutOrder.length > 0) {
+      console.log(`Found ${plansWithoutOrder.length} plans without order field, setting default values`);
+      for (let i = 0; i < plansWithoutOrder.length; i++) {
+        await Plan.findByIdAndUpdate(plansWithoutOrder[i]._id, { order: i + 1 });
+      }
+    }
+
+    // Find all plans, sorted by order (ascending) then by price descending
+    let plans = await Plan.find().sort({ order: 1, price: -1 });
 
     // If user is authenticated, check if they already have a free tier subscription
     if (userId) {
@@ -202,6 +216,44 @@ export const assignPlanToUser = async (req, res) => {
     });
   } catch (error) {
     console.error("Assign Plan Error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      data: {},
+    });
+  }
+};
+
+export const reorderPlans = async (req, res) => {
+  try {
+    const { planOrders } = req.body; // Array of { planId, order } objects
+
+    console.log("Reorder request received:", { planOrders });
+
+    if (!planOrders || !Array.isArray(planOrders)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid plan orders data",
+        data: {},
+      });
+    }
+
+    // Update each plan's order
+    const updatePromises = planOrders.map(({ planId, order }) => {
+      console.log(`Updating plan ${planId} to order ${order}`);
+      return Plan.findByIdAndUpdate(planId, { order }, { new: true });
+    });
+
+    const updatedPlans = await Promise.all(updatePromises);
+    console.log("Updated plans:", updatedPlans);
+
+    res.json({
+      success: true,
+      message: "Plans reordered successfully",
+      data: { updatedPlans },
+    });
+  } catch (error) {
+    console.error("Reorder Plans Error:", error);
     res.status(500).json({
       success: false,
       message: "Server error",

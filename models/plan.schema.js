@@ -33,6 +33,10 @@ const planSchema = new mongoose.Schema({
     enum: ["active", "inactive"],
     default:"active"
   },
+  order: {
+    type: Number,
+    default: 0,
+  },
   createdAt: {
     type: Date,
     default: Date.now,
